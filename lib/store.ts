@@ -33,6 +33,14 @@ interface OSStore {
     // AI Doctor
     aiThinking: boolean;
     setAiThinking: (v: boolean) => void;
+
+    // Desktop appearance
+    brightness: number;
+    setBrightness: (v: number) => void;
+    isDarkMode: boolean;
+    toggleDarkMode: () => void;
+    showControlCenter: boolean;
+    setShowControlCenter: (v: boolean) => void;
 }
 
 export const useOSStore = create<OSStore>((set, get) => ({
@@ -78,4 +86,12 @@ export const useOSStore = create<OSStore>((set, get) => ({
     // AI Doctor
     aiThinking: false,
     setAiThinking: (v) => set({ aiThinking: v }),
+
+    // Desktop appearance
+    brightness: 100,
+    setBrightness: (v) => set({ brightness: v }),
+    isDarkMode: true,
+    toggleDarkMode: () => set({ isDarkMode: !get().isDarkMode }),
+    showControlCenter: false,
+    setShowControlCenter: (v) => set({ showControlCenter: v }),
 }));

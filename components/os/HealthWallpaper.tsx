@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useRef, useEffect } from "react";
+import { Suspense, useRef, useEffect, useMemo } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF, Environment, Stars, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
@@ -32,9 +32,11 @@ function BodyMesh() {
                         const mat = new THREE.MeshStandardMaterial();
                         mat.color.set(data?.color || "#00e676");
                         mat.emissive.set(data?.emissiveColor || "#00e676");
-                        mat.emissiveIntensity = (data?.glowIntensity as number) ?? 0.3;
+                        mat.emissiveIntensity = (data?.glowIntensity as number) ?? 0.35;
                         mat.transparent = true;
-                        mat.opacity = 0.92;
+                        mat.opacity = 0.94;
+                        mat.roughness = 0.4;
+                        mat.metalness = 0.1;
                         obj.material = mat;
                         break;
                     }
@@ -43,17 +45,17 @@ function BodyMesh() {
         });
     }, [avatarState, cloned]);
 
-    // Subtle idle breathing (only when not being dragged — OrbitControls handles drag)
+    // Subtle idle breathing
     useFrame((state) => {
         if (meshRef.current) {
-            meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.04;
+            meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.03;
         }
     });
 
     return (
         <group ref={meshRef}>
-            {/* Scale to fill viewport: model is ~1.7m tall, we scale to ~3 units */}
-            <primitive object={cloned} scale={[2.6, 2.6, 2.6]} position={[0, -2.2, 0]} />
+            {/* Larger scale, positioned higher — model sits in the upper portion of the screen */}
+            <primitive object={cloned} scale={[3.2, 3.2, 3.2]} position={[0, -1.4, 0]} />
         </group>
     );
 }
@@ -68,21 +70,20 @@ function HelixParticles() {
                 : healthScore >= 40 ? new THREE.Color(0xffab40)
                     : new THREE.Color(0xff1744);
 
-    const geo = useRef<THREE.BufferGeometry | null>(null);
-    if (!geo.current) {
-        const count = 1400;
+    const geo = useMemo(() => {
+        const count = 1800;
         const positions = new Float32Array(count * 3);
         const colors = new Float32Array(count * 3);
         for (let i = 0; i < count; i++) {
-            const t = (i / count) * Math.PI * 18;
-            const r = 4.5;
+            const t = (i / count) * Math.PI * 20;
+            const r = 5.0;
             if (i % 2 === 0) {
                 positions[i * 3] = Math.cos(t) * r;
-                positions[i * 3 + 1] = t * 0.22 - 20;
+                positions[i * 3 + 1] = t * 0.2 - 20;
                 positions[i * 3 + 2] = Math.sin(t) * r - 1;
             } else {
                 positions[i * 3] = Math.cos(t + Math.PI) * r;
-                positions[i * 3 + 1] = t * 0.22 - 20;
+                positions[i * 3 + 1] = t * 0.2 - 20;
                 positions[i * 3 + 2] = Math.sin(t + Math.PI) * r - 1;
             }
             const c = primaryColor.clone().lerp(new THREE.Color(0x7c3aed), Math.random() * 0.5);
@@ -91,52 +92,87 @@ function HelixParticles() {
         const g = new THREE.BufferGeometry();
         g.setAttribute("position", new THREE.BufferAttribute(positions, 3));
         g.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-        geo.current = g;
-    }
+        return g;
+    }, [primaryColor]);
 
     useFrame((state) => {
         if (pointsRef.current) {
-            pointsRef.current.rotation.y = state.clock.elapsedTime * 0.05;
-            pointsRef.current.position.y = (state.clock.elapsedTime * 0.08) % 4 - 2;
+            pointsRef.current.rotation.y = state.clock.elapsedTime * 0.04;
+            pointsRef.current.position.y = (state.clock.elapsedTime * 0.06) % 4 - 2;
         }
     });
 
     return (
-        <points ref={pointsRef} geometry={geo.current}>
-            <pointsMaterial size={0.022} vertexColors transparent opacity={0.65}
+        <points ref={pointsRef} geometry={geo}>
+            <pointsMaterial size={0.025} vertexColors transparent opacity={0.6}
                 blending={THREE.AdditiveBlending} depthWrite={false} sizeAttenuation />
         </points>
     );
 }
 
 export default function DesktopWallpaper() {
+    const { isDarkMode } = useOSStore();
+
+    const bgColor = isDarkMode ? "#040810" : "#e8ecf0";
+    const lightColor1 = isDarkMode ? "#00e5ff" : "#0088cc";
+    const lightColor2 = isDarkMode ? "#7c3aed" : "#6d28d9";
+    const lightColor3 = isDarkMode ? "#00e676" : "#059669";
+    const ambientIntensity = isDarkMode ? 0.3 : 0.6;
+    const starsCount = isDarkMode ? 3000 : 800;
+
     return (
-        <div className="absolute inset-0 w-full h-full" style={{ zIndex: 0, background: "#040810" }}>
+        <div className="absolute inset-0 w-full h-full" style={{ zIndex: 0, background: bgColor }}>
+            {/* ── Looping wallpaper video (no audio) ── */}
+            <video
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ zIndex: 0 }}
+                src="/wallpaper-video.mp4"
+            />
+            {/* ── Tint overlay so 3D model remains readable ── */}
+            <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                    zIndex: 1,
+                    background: isDarkMode
+                        ? "rgba(4,8,16,0.55)"
+                        : "rgba(230,235,240,0.40)",
+                }}
+            />
+
             <Canvas
-                camera={{ position: [0, 0.5, 5], fov: 45, near: 0.1, far: 200 }}
-                gl={{ antialias: true, alpha: false, toneMapping: THREE.ACESFilmicToneMapping }}
-                style={{ width: "100%", height: "100%", display: "block", background: "#040810" }}
+                camera={{ position: [0, 1.8, 5.5], fov: 42, near: 0.1, far: 200 }}
+                gl={{ antialias: true, alpha: true, toneMapping: THREE.ACESFilmicToneMapping }}
+                style={{ width: "100%", height: "100%", display: "block", position: "relative", zIndex: 2, background: "transparent" }}
             >
+                {/* Camera looks at upper-body area — pushes model into upper 60% of viewport */}
+
                 {/* Lighting */}
-                <ambientLight intensity={0.3} />
-                <pointLight position={[3, 5, 4]} intensity={2.5} color="#00e5ff" />
-                <pointLight position={[-4, 2, -3]} intensity={1.5} color="#7c3aed" />
-                <pointLight position={[0, -3, 4]} intensity={1.0} color="#00e676" />
-                <pointLight position={[0, 10, 0]} intensity={0.6} color="#ffffff" />
+                <ambientLight intensity={ambientIntensity} />
+                <pointLight position={[3, 6, 4]} intensity={2.8} color={lightColor1} />
+                <pointLight position={[-4, 3, -3]} intensity={1.8} color={lightColor2} />
+                <pointLight position={[0, -2, 4]} intensity={1.2} color={lightColor3} />
+                <pointLight position={[0, 10, 0]} intensity={0.8} color="#ffffff" />
+                {/* Rim light for better model readability */}
+                <directionalLight position={[-2, 4, -4]} intensity={0.6} color="#ffffff" />
+                <directionalLight position={[2, 4, 4]} intensity={0.4} color={lightColor1} />
 
-                {/* ── Starfield ── */}
-                <Stars radius={100} depth={80} count={3000} factor={4} saturation={0.1} fade speed={0.3} />
+                {/* Starfield */}
+                <Stars radius={100} depth={80} count={starsCount} factor={4} saturation={isDarkMode ? 0.1 : 0.3} fade speed={0.3} />
 
-                {/* ── Helix particles ── */}
+                {/* Helix particles */}
                 <HelixParticles />
 
-                {/* ── 3D Body — draggable via OrbitControls ── */}
+                {/* 3D Body — draggable via OrbitControls */}
                 <Suspense fallback={null}>
                     <BodyMesh />
-                    <Environment preset="night" />
+                    <Environment preset={isDarkMode ? "night" : "city"} />
                 </Suspense>
 
-                {/* OrbitControls: user can rotate/drag the entire scene */}
+                {/* OrbitControls: target shifted up so model renders in upper screen area */}
                 <OrbitControls
                     enableZoom={true}
                     enablePan={false}
@@ -147,16 +183,31 @@ export default function DesktopWallpaper() {
                     dampingFactor={0.08}
                     enableDamping
                     autoRotate={false}
-                    target={[0, 0, 0]}
+                    target={[0, 1.0, 0]}
                 />
             </Canvas>
 
             {/* Vignette */}
-            <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 40%, rgba(4,8,16,0.70) 100%)", zIndex: 1 }} />
-            {/* Bottom fade for dock */}
-            <div className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none" style={{ background: "linear-gradient(to top, rgba(4,8,16,0.9), transparent)", zIndex: 1 }} />
+            <div className="absolute inset-0 pointer-events-none" style={{
+                background: isDarkMode
+                    ? "radial-gradient(ellipse at center, transparent 40%, rgba(4,8,16,0.70) 100%)"
+                    : "radial-gradient(ellipse at center, transparent 50%, rgba(200,210,220,0.55) 100%)",
+                zIndex: 3
+            }} />
+            {/* Bottom fade for dock clearance */}
+            <div className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none" style={{
+                background: isDarkMode
+                    ? "linear-gradient(to top, rgba(4,8,16,0.95), transparent)"
+                    : "linear-gradient(to top, rgba(220,225,230,0.9), transparent)",
+                zIndex: 3
+            }} />
             {/* Top fade for menubar */}
-            <div className="absolute top-0 left-0 right-0 h-14 pointer-events-none" style={{ background: "linear-gradient(to bottom, rgba(4,8,16,0.75), transparent)", zIndex: 1 }} />
+            <div className="absolute top-0 left-0 right-0 h-14 pointer-events-none" style={{
+                background: isDarkMode
+                    ? "linear-gradient(to bottom, rgba(4,8,16,0.75), transparent)"
+                    : "linear-gradient(to bottom, rgba(220,225,230,0.6), transparent)",
+                zIndex: 3
+            }} />
         </div>
     );
 }

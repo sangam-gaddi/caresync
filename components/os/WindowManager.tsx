@@ -123,6 +123,18 @@ export function OSWindow({ appId, zIndex, children, onClose: onCloseProp, onFocu
     const resolvedIcon = config?.icon || "🗂️";
 
     const isActive = isActiveProp !== undefined ? isActiveProp : activeWindow === appId;
+    const { isDarkMode } = useOSStore();
+
+    const winBg = isDarkMode
+        ? "rgba(8,12,20,0.92)"
+        : "rgba(245,245,250,0.92)";
+    const winBorder = isDarkMode
+        ? "rgba(255,255,255,0.10)"
+        : "rgba(0,0,0,0.10)";
+    const titleBarBg = isDarkMode
+        ? "rgba(14,20,34,0.95)"
+        : "rgba(235,235,240,0.95)";
+    const titleTextColor = isDarkMode ? "rgba(255,255,255,0.70)" : "rgba(0,0,0,0.65)";
 
     return (
         <AnimatePresence>
@@ -136,11 +148,17 @@ export function OSWindow({ appId, zIndex, children, onClose: onCloseProp, onFocu
                     style={isFullscreen ? {
                         position: "fixed",
                         left: 0,
-                        top: 28, // below menubar
+                        top: 28,
                         width: "100vw",
-                        height: "calc(100vh - 28px - 76px)", // leave dock space
+                        height: "calc(100vh - 28px - 76px)",
                         zIndex: zIndex + 200,
                         borderRadius: 0,
+                        background: winBg,
+                        backdropFilter: "blur(40px) saturate(180%)",
+                        border: `1px solid ${winBorder}`,
+                        boxShadow: isDarkMode
+                            ? "0 12px 48px rgba(0,0,0,0.6)"
+                            : "0 12px 48px rgba(0,0,0,0.15)",
                     } : {
                         position: "fixed",
                         left: position.x,
@@ -148,30 +166,42 @@ export function OSWindow({ appId, zIndex, children, onClose: onCloseProp, onFocu
                         width: size.width,
                         height: size.height,
                         zIndex: zIndex + (isActive ? 100 : 0),
+                        background: winBg,
+                        backdropFilter: "blur(40px) saturate(180%)",
+                        border: `1px solid ${winBorder}`,
+                        borderRadius: "12px",
+                        boxShadow: isDarkMode
+                            ? `0 12px 48px rgba(0,0,0,0.6)${isActive ? ", 0 0 0 1px rgba(255,255,255,0.08)" : ""}`
+                            : `0 12px 48px rgba(0,0,0,0.15)${isActive ? ", 0 0 0 1px rgba(0,0,0,0.08)" : ""}`,
+                        overflow: "hidden",
                     }}
-                    className={`os-window select-none ${isActive ? "ring-1 ring-white/10" : "opacity-95"} ${isFullscreen ? "rounded-none" : ""}`}
+                    className={`select-none flex flex-col ${isFullscreen ? "rounded-none" : ""}`}
                     onMouseDown={() => handleFocus()}
                 >
                     {/* Title Bar */}
                     <div
-                        className="os-window-titlebar cursor-move"
+                        className="flex items-center px-3 h-11 shrink-0 cursor-move"
+                        style={{
+                            background: titleBarBg,
+                            borderBottom: `1px solid ${winBorder}`,
+                            backdropFilter: "blur(20px)",
+                        }}
                         onMouseDown={isFullscreen ? undefined : onMouseDown}
                         onDoubleClick={() => setIsFullscreen(!isFullscreen)}
                     >
                         <div className="flex items-center gap-1.5">
-                            {/* Traffic lights */}
                             <button
-                                className="os-window-btn bg-[#ff5f57] hover:bg-[#ff3b30]"
+                                className="w-3 h-3 rounded-full bg-[#ff5f57] hover:bg-[#ff3b30] transition-colors"
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onClick={handleClose}
                             />
                             <button
-                                className="os-window-btn bg-[#febc2e] hover:bg-[#ffa800]"
+                                className="w-3 h-3 rounded-full bg-[#febc2e] hover:bg-[#ffa800] transition-colors"
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onClick={() => setMinimized(true)}
                             />
                             <button
-                                className="os-window-btn bg-[#28c840] hover:bg-[#00c21b]"
+                                className="w-3 h-3 rounded-full bg-[#28c840] hover:bg-[#00c21b] transition-colors"
                                 title="Fullscreen"
                                 onMouseDown={(e) => e.stopPropagation()}
                                 onClick={() => setIsFullscreen(!isFullscreen)}
@@ -179,12 +209,12 @@ export function OSWindow({ appId, zIndex, children, onClose: onCloseProp, onFocu
                         </div>
                         <div className="flex items-center gap-2 ml-4">
                             <span className="text-base">{resolvedIcon}</span>
-                            <span className="text-xs font-medium text-white/70">{resolvedTitle}</span>
+                            <span className="text-xs font-medium" style={{ color: titleTextColor }}>{resolvedTitle}</span>
                         </div>
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 overflow-auto h-[calc(100%-44px)]">{children}</div>
+                    <div className="flex-1 overflow-auto">{children}</div>
                 </motion.div>
             )}
         </AnimatePresence>
