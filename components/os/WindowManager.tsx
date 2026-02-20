@@ -3,7 +3,7 @@
 import { useRef, useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOSStore } from "@/lib/store";
-import { X, Minus, Square } from "lucide-react";
+
 
 interface WindowConfig {
     id: string;
@@ -86,7 +86,7 @@ export function OSWindow({ appId, zIndex, children, onClose: onCloseProp, onFocu
         x: 80 + Object.keys(WINDOW_CONFIGS).indexOf(appId) * 30,
         y: 80 + Object.keys(WINDOW_CONFIGS).indexOf(appId) * 20,
     });
-    const [size, setSize] = useState(config?.defaultSize || { width: 600, height: 480 });
+    const [size] = useState(config?.defaultSize || { width: 600, height: 480 });
 
     const dragging = useRef(false);
     const dragOffset = useRef({ x: 0, y: 0 });

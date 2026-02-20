@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useRef, useEffect, useCallback } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Suspense, useRef, useEffect } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { useGLTF, Environment, Stars, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { useOSStore } from "@/lib/store";

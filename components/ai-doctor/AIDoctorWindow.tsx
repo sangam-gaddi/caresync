@@ -23,7 +23,8 @@ export default function AIDoctorWindow() {
     const [inputText, setInputText] = useState("");
     const [typing, setTyping] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
-    const recognitionRef = useRef<SpeechRecognition | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const recognitionRef = useRef<any>(null);
 
     const { patientId, avatarState, healthScore, showIslandNotification, setAiThinking, aiThinking } = useOSStore();
 
@@ -107,9 +108,9 @@ export default function AIDoctorWindow() {
             return;
         }
 
-        const SpeechRecognitionAPI =
-            (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition; SpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition ||
-            (window as unknown as { SpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const w = window as any;
+        const SpeechRecognitionAPI = w.webkitSpeechRecognition || w.SpeechRecognition;
 
         if (!SpeechRecognitionAPI) return;
 

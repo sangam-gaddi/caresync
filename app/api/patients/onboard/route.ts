@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import User from "@/lib/models/user";
+import User, { hashPassword } from "@/lib/models/user";
 import HealthProfile from "@/lib/models/health-profile";
 import AvatarState from "@/lib/models/avatar-state";
 import { computeAvatarState } from "@/lib/health-engine";
@@ -13,6 +13,7 @@ export async function POST(req: NextRequest) {
         const {
             name,
             email,
+            password,
             age,
             weight,
             height,
@@ -24,11 +25,25 @@ export async function POST(req: NextRequest) {
             lifestyle,
         } = body;
 
-        // Create or update user
-        let user = await User.findOne({ email });
-        if (!user) {
-            user = await User.create({ name, email });
+        if (!password || password.length < 6) {
+            return NextResponse.json(
+                { error: "Password must be at least 6 characters" },
+                { status: 400 }
+            );
         }
+
+        // Check if user already exists
+        let user = await User.findOne({ email });
+        if (user) {
+            return NextResponse.json(
+                { error: "An account with this email already exists. Please login instead." },
+                { status: 409 }
+            );
+        }
+
+        // Hash password and create user
+        const { hash, salt } = hashPassword(password);
+        user = await User.create({ name, email, password: hash, salt });
 
         const userId = user._id.toString();
 

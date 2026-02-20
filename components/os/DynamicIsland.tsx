@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOSStore } from "@/lib/store";
 import {

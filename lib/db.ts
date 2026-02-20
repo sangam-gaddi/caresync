@@ -12,7 +12,7 @@ interface MongooseCache {
 }
 
 declare global {
-    var _mongoose: MongooseCache;
+    let _mongoose: MongooseCache;
 }
 
 let cached: MongooseCache = global._mongoose;

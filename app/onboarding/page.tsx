@@ -26,9 +26,12 @@ export default function OnboardingPage() {
     const router = useRouter();
     const [step, setStep] = useState(0);
     const [loading, setLoading] = useState(false);
+    const [submitError, setSubmitError] = useState("");
     const [formData, setFormData] = useState({
         name: "",
         email: "",
+        password: "",
+        confirmPassword: "",
         age: "",
         gender: "male",
         weight: "",
@@ -62,12 +65,14 @@ export default function OnboardingPage() {
 
     const handleSubmit = async () => {
         setLoading(true);
+        setSubmitError("");
         try {
             const res = await fetch("/api/patients/onboard", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     ...formData,
+                    password: formData.password,
                     age: parseInt(formData.age),
                     weight: parseFloat(formData.weight),
                     height: parseFloat(formData.height),
@@ -75,11 +80,16 @@ export default function OnboardingPage() {
                 }),
             });
             const data = await res.json();
+            if (!res.ok) {
+                setSubmitError(data.error || "Registration failed");
+                return;
+            }
             if (data.redirect) {
                 router.push(data.redirect);
             }
         } catch (err) {
             console.error(err);
+            setSubmitError("Network error. Please try again.");
         } finally {
             setLoading(false);
         }
@@ -162,6 +172,23 @@ export default function OnboardingPage() {
                                         value={formData.email}
                                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                     />
+                                    <input
+                                        type="password"
+                                        className="w-full bg-[#0d1421] border border-[#1e2a3a] rounded-xl px-4 py-2.5 text-sm text-white/90 placeholder-white/30 outline-none focus:border-cyan-500/50 transition-colors"
+                                        placeholder="Create Password"
+                                        value={formData.password}
+                                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                                    />
+                                    <input
+                                        type="password"
+                                        className="w-full bg-[#0d1421] border border-[#1e2a3a] rounded-xl px-4 py-2.5 text-sm text-white/90 placeholder-white/30 outline-none focus:border-cyan-500/50 transition-colors"
+                                        placeholder="Confirm Password"
+                                        value={formData.confirmPassword}
+                                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                                    />
+                                    {formData.password && formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                                        <p className="text-xs text-red-400">Passwords do not match</p>
+                                    )}
                                     <div className="grid grid-cols-3 gap-2">
                                         <input
                                             type="number"
@@ -351,6 +378,13 @@ export default function OnboardingPage() {
                         </motion.div>
                     </AnimatePresence>
 
+                    {/* Error display */}
+                    {submitError && (
+                        <div className="mt-3 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+                            <p className="text-xs text-red-400">{submitError}</p>
+                        </div>
+                    )}
+
                     {/* Navigation */}
                     <div className="flex justify-between mt-6">
                         {step > 0 ? (
@@ -365,7 +399,7 @@ export default function OnboardingPage() {
                         {step < STEPS.length - 1 ? (
                             <button
                                 onClick={() => setStep(step + 1)}
-                                disabled={step === 0 && (!formData.name || !formData.email)}
+                                disabled={step === 0 && (!formData.name || !formData.email || !formData.password || formData.password !== formData.confirmPassword)}
                                 className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 text-white text-sm font-medium hover:from-cyan-400 hover:to-blue-400 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                             >
                                 Next <ChevronRight className="w-4 h-4" />
