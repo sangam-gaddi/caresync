@@ -1,0 +1,318 @@
+/* ===== LANDING PAGE GLOBAL STYLES ===== */
+/* Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Koulen&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&family=Host+Grotesk:wght@300;400;500;600;700;800&display=swap');
+
+/* CSS Variables */
+.landing-root {
+  --base-100: #edf1e8;
+  --base-200: #d7dbd2;
+  --base-300: #afb3ab;
+  --base-400: #969992;
+  --base-500: #7d807a;
+  --base-600: #1f1f1f;
+  --base-700: #0f0f0f;
+  --font-koulen: 'Koulen', sans-serif;
+  --font-host-grotesk: 'Host Grotesk', sans-serif;
+  --font-dm-mono: 'DM Mono', monospace;
+}
+
+/* Reset within landing root */
+.landing-root * {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+.landing-root {
+  background-color: var(--base-100);
+  color: var(--base-700);
+}
+
+.landing-root img,
+.landing-root svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.landing-root h1,
+.landing-root h2,
+.landing-root h3,
+.landing-root h4,
+.landing-root h5 {
+  text-transform: uppercase;
+  font-family: var(--font-koulen), sans-serif;
+  font-weight: 400;
+  line-height: 0.8;
+}
+
+.landing-root h1 {
+  font-size: clamp(4rem, 10vw, 10rem);
+  letter-spacing: clamp(-0.15rem, -1vw, -0.25rem);
+}
+
+.landing-root h2 {
+  font-size: clamp(3.25rem, 8vw, 8rem);
+  letter-spacing: clamp(-0.0125rem, -0.75vw, -0.2rem);
+}
+
+.landing-root h3 {
+  font-size: clamp(2.5rem, 6.5vw, 5rem);
+  letter-spacing: clamp(-0.035rem, -0.5vw, -0.075rem);
+}
+
+.landing-root h4 {
+  font-size: clamp(2rem, 4.5vw, 4rem);
+  letter-spacing: clamp(0rem, -0.5vw, -0.075rem);
+}
+
+.landing-root h5 {
+  font-size: clamp(1.25rem, 2vw, 3rem);
+  letter-spacing: clamp(0rem, -0.25vw, -0.05rem);
+}
+
+.landing-root a,
+.landing-root p,
+.landing-root span {
+  text-decoration: none;
+  text-transform: uppercase;
+  color: var(--base-700);
+  font-family: var(--font-dm-mono), monospace;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.landing-root a,
+.landing-root p,
+.landing-root span {
+  font-size: clamp(0.8rem, 0.75vw, 0.85rem);
+}
+
+.landing-root a.md,
+.landing-root p.md,
+.landing-root span.md {
+  font-size: clamp(1rem, 0.8vw, 1.25rem);
+}
+
+.landing-root a.lg,
+.landing-root p.lg,
+.landing-root span.lg {
+  font-size: clamp(1.1rem, 0.85vw, 1.35rem);
+}
+
+.landing-root p.bodyCopy {
+  text-transform: none;
+  font-family: var(--font-host-grotesk), sans-serif;
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: -0.01rem;
+}
+
+.landing-root p.bodyCopy {
+  font-size: clamp(1.125rem, 0.75vw, 1.25rem);
+}
+
+.landing-root p.bodyCopy.md {
+  font-size: clamp(1.25rem, 0.85vw, 1.35rem);
+}
+
+.landing-root p.bodyCopy.lg {
+  font-size: clamp(1.375rem, 0.95vw, 1.45rem);
+}
+
+.landing-root button {
+  border: none;
+  outline: none;
+  padding: 1.25rem 0.75rem;
+  text-decoration: none;
+  text-transform: uppercase;
+  color: var(--base-700);
+  font-family: var(--font-dm-mono), monospace;
+  font-weight: 500;
+  font-size: clamp(0.85rem, 1vw, 0.85rem);
+  line-height: 1;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: 300ms all ease-in-out;
+}
+
+.landing-root button:active {
+  transform: scale(0.95);
+}
+
+.landing-root button.primary {
+  background: var(--base-700);
+  color: var(--base-100);
+}
+
+.landing-root button.secondary {
+  background: var(--base-400);
+  color: var(--base-100);
+}
+
+.landing-root .btn a {
+  background: var(--base-200);
+  color: var(--base-100);
+  display: block;
+  border-radius: 0.5rem;
+  padding: 1.25rem 1.75rem;
+  text-decoration: none;
+  text-transform: uppercase;
+  color: var(--base-700);
+  font-family: var(--font-dm-mono), monospace;
+  font-weight: 500;
+  font-size: clamp(0.85rem, 1vw, 0.85rem);
+  line-height: 1;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: 300ms all ease-in-out;
+}
+
+.landing-root .container {
+  width: 100%;
+  height: 100%;
+  padding: 2rem;
+  max-width: 2000px;
+  margin: 0 auto;
+}
+
+.landing-root .section-header,
+.landing-root .section-footer {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  padding: 2.125rem;
+  max-width: 2000px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.landing-root .section-header {
+  top: 0;
+}
+
+.landing-root .section-footer {
+  bottom: 0;
+  justify-content: flex-start;
+  gap: 2rem;
+}
+
+.landing-root .section-header p,
+.landing-root .section-footer p {
+  color: var(--base-700);
+}
+
+.landing-root .section-header.light p,
+.landing-root .section-footer.light p {
+  color: var(--base-500);
+}
+
+@media (max-width: 1000px) {
+  .landing-root .container,
+  .landing-root .section-header,
+  .landing-root .section-footer {
+    padding: 1.5rem;
+  }
+}
+
+/* ===== HOME PAGE SPECIFIC STYLES ===== */
+
+.landing-root .hero {
+  position: relative;
+  width: 100%;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.landing-root .hero .hero-header {
+  position: absolute;
+  top: 20svh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 70%;
+  text-align: center;
+  will-change: transform;
+}
+
+.landing-root .hero .hero-img {
+  position: absolute;
+  top: 35svh;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  will-change: opacity;
+}
+
+.landing-root .hero .hero-img img {
+  object-fit: contain;
+}
+
+.landing-root .about {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-color: var(--base-700);
+  color: var(--base-100);
+  padding: 8rem 0;
+}
+
+.landing-root .about .container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.landing-root .about .section-footer {
+  justify-content: center;
+}
+
+.landing-root .about .about-copy {
+  width: 70%;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rem;
+}
+
+.landing-root .about .about-copy p {
+  color: var(--base-500);
+}
+
+.landing-root .about .about-copy .about-icon {
+  width: 25rem;
+  height: 25rem;
+}
+
+.landing-root .about .about-copy .about-icon svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+@media (max-width: 1000px) {
+  .landing-root .hero .hero-header {
+    width: calc(100% - 3rem);
+  }
+
+  .landing-root .about .about-copy {
+    width: 90%;
+  }
+
+  .landing-root .about .about-copy .about-icon {
+    height: 10rem;
+    width: auto;
+  }
+}
+
+@media (min-width: 2000px) {
+  .landing-root .hero .hero-header {
+    width: 40%;
+  }
+}

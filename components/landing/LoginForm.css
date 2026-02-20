@@ -1,0 +1,174 @@
+.login-form-section {
+  position: relative;
+  width: 100%;
+  height: calc(45svh + 80svh);
+  overflow-x: hidden;
+  background-color: var(--base-100);
+}
+
+.login-form-section .contact-parallax-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 80svh;
+  overflow: hidden;
+  background-color: var(--base-200);
+}
+
+.login-form-section .contact-parallax-image-wrapper h1 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  transform: scale(5);
+  color: var(--base-400);
+}
+
+.login-form-section .contact-parallax-image-wrapper img {
+  position: relative;
+}
+
+.login-form-section .login-form-container {
+  position: absolute;
+  top: 40svh;
+  right: 8rem;
+  width: 35%;
+  height: 80svh;
+  max-height: 900px;
+  background-color: var(--base-700);
+  color: var(--base-100);
+  border-radius: 0.75rem;
+  z-index: 2;
+  padding: 4rem 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.login-form-section .cf-header {
+  width: 90%;
+  text-align: center;
+}
+
+.login-form-section .cf-copy p {
+  color: var(--base-400);
+  width: 80%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.login-form-section .cf-input {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.login-form-section .cf-input input {
+  width: 100%;
+  border: 1.5px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 0.5rem;
+  outline: none;
+  background-color: var(--base-600);
+  padding: 1rem;
+  text-transform: uppercase;
+  color: var(--base-100);
+  font-family: var(--font-dm-mono), monospace;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.login-form-section .cf-input input::placeholder {
+  color: var(--base-400);
+}
+
+.login-form-section .cf-submit-btn {
+  width: 100%;
+  padding: 1.25rem;
+  background-color: var(--base-300);
+  border: none;
+  border-radius: 0.5rem;
+  color: var(--base-700);
+  font-family: var(--font-dm-mono), monospace;
+  font-weight: 500;
+  font-size: clamp(0.85rem, 1vw, 0.85rem);
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: 300ms all ease-in-out;
+}
+
+.login-form-section .cf-submit-btn:active {
+  transform: scale(0.95);
+}
+
+.login-form-section .cf-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.login-form-section .login-error {
+  color: #ff6b6b;
+  font-family: var(--font-dm-mono), monospace;
+  font-size: 0.8rem;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.login-form-section .cf-footer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.login-form-section .cf-footer .cf-divider {
+  width: 100%;
+  height: 1px;
+  border-top: 1.5px dashed rgba(255, 255, 255, 0.15);
+}
+
+.login-form-section .cf-footer .cf-footer-copy p {
+  color: var(--base-500);
+  width: 40%;
+  font-size: 0.8rem;
+  text-align: center;
+  margin: 0 auto;
+}
+
+@media (max-width: 1000px) {
+  .login-form-section {
+    height: calc(80svh + 80svh);
+  }
+
+  .login-form-section .cf-header,
+  .login-form-section .cf-copy p {
+    width: 100%;
+  }
+
+  .login-form-section .cf-footer .cf-footer-copy p {
+    width: 75%;
+  }
+
+  .login-form-section .login-form-container {
+    top: 80svh;
+    border-radius: 0;
+    width: 100%;
+    right: 0;
+    padding: 5rem 2rem;
+  }
+}
+
+@media (min-width: 2000px) {
+  .login-form-section .login-form-container {
+    height: 60svh;
+    width: 25%;
+  }
+  .login-form-section .login-form-container h4 {
+    font-size: 2.5vw;
+    margin: 2rem auto 0rem auto;
+  }
+
+  .login-form-section .cf-copy {
+    margin-top: -2rem;
+  }
+}
