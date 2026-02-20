@@ -1,208 +1,164 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { Suspense, useRef, useEffect, useCallback } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { useGLTF, Environment, Stars, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import { useOSStore } from "@/lib/store";
 
-export default function HealthWallpaper() {
-    const canvasRef = useRef<HTMLCanvasElement>(null);
-    const { healthScore } = useOSStore();
+function BodyMesh() {
+    const { scene } = useGLTF("/models/anatomy_lowquality_lowpoly.glb");
+    const cloned = useRef(scene.clone()).current;
+    const meshRef = useRef<THREE.Group>(null);
+    const { avatarState } = useOSStore();
 
+    // Apply organ colors from avatarState
     useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-
-        const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setClearColor(0x040810, 1);
-
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(0, 0, 4);
-
-        // --- DNA Helix / Particle Network ---
-        const particleCount = 2000;
-        const positions = new Float32Array(particleCount * 3);
-        const colors = new Float32Array(particleCount * 3);
-        const sizes = new Float32Array(particleCount);
-
-        // Health color based on score
-        const getHealthColor = (score: number) => {
-            if (score >= 80) return new THREE.Color(0x00e5ff); // cyan - excellent
-            if (score >= 60) return new THREE.Color(0x00e676); // green - good
-            if (score >= 40) return new THREE.Color(0xffab40); // amber - warning
-            return new THREE.Color(0xff1744); // red - critical
+        const organs = (avatarState?.organs as Record<string, { color?: string; emissiveColor?: string; glowIntensity?: number }> | undefined);
+        const organMeshMap: Record<string, string[]> = {
+            heart: ["Heart", "heart", "Myocardium", "Aorta"],
+            liver: ["Liver", "liver"],
+            lungs: ["Lungs", "lungs", "Lung", "lung", "Right_Lung", "Left_Lung"],
+            kidneys: ["Kidney", "kidney", "Kidneys"],
+            brain: ["Brain", "brain"],
+            stomach: ["Stomach", "stomach"],
         };
 
-        const primaryColor = getHealthColor(healthScore);
-
-        for (let i = 0; i < particleCount; i++) {
-            const t = (i / particleCount) * Math.PI * 20;
-            const radius = 1.5 + Math.random() * 0.8;
-
-            // Two intertwined helices
-            if (i % 2 === 0) {
-                positions[i * 3] = Math.cos(t) * 1.2;
-                positions[i * 3 + 1] = t * 0.1 - 10;
-                positions[i * 3 + 2] = Math.sin(t) * 1.2;
-            } else {
-                positions[i * 3] = Math.cos(t + Math.PI) * 1.2;
-                positions[i * 3 + 1] = t * 0.1 - 10;
-                positions[i * 3 + 2] = Math.sin(t + Math.PI) * 1.2;
+        cloned.traverse((obj) => {
+            if (obj instanceof THREE.Mesh) {
+                for (const [organ, meshNames] of Object.entries(organMeshMap)) {
+                    if (meshNames.some((n) => obj.name.includes(n))) {
+                        const data = organs?.[organ];
+                        const mat = new THREE.MeshStandardMaterial();
+                        mat.color.set(data?.color || "#00e676");
+                        mat.emissive.set(data?.emissiveColor || "#00e676");
+                        mat.emissiveIntensity = (data?.glowIntensity as number) ?? 0.3;
+                        mat.transparent = true;
+                        mat.opacity = 0.92;
+                        obj.material = mat;
+                        break;
+                    }
+                }
             }
-
-            // Color variation
-            const mixRatio = Math.random();
-            const color = primaryColor.clone().lerp(new THREE.Color(0x7c3aed), mixRatio * 0.4);
-            colors[i * 3] = color.r;
-            colors[i * 3 + 1] = color.g;
-            colors[i * 3 + 2] = color.b;
-
-            sizes[i] = Math.random() * 3 + 1;
-        }
-
-        const particleGeo = new THREE.BufferGeometry();
-        particleGeo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-        particleGeo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
-        particleGeo.setAttribute("size", new THREE.BufferAttribute(sizes, 1));
-
-        const particleMat = new THREE.PointsMaterial({
-            size: 0.025,
-            vertexColors: true,
-            transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending,
-            sizeAttenuation: true,
-            depthWrite: false,
         });
+    }, [avatarState, cloned]);
 
-        const particles = new THREE.Points(particleGeo, particleMat);
-        scene.add(particles);
-
-        // --- Connection Lines between helix strands ---
-        const lineGeo = new THREE.BufferGeometry();
-        const linePositions: number[] = [];
-        const lineColors: number[] = [];
-        for (let i = 0; i < particleCount - 2; i += 40) {
-            linePositions.push(
-                positions[i * 3], positions[i * 3 + 1], positions[i * 3 + 2],
-                positions[(i + 1) * 3], positions[(i + 1) * 3 + 1], positions[(i + 1) * 3 + 2]
-            );
-            lineColors.push(primaryColor.r * 0.5, primaryColor.g * 0.5, primaryColor.b * 0.5);
-            lineColors.push(0.4, 0.1, 0.8);
+    // Subtle idle breathing (only when not being dragged — OrbitControls handles drag)
+    useFrame((state) => {
+        if (meshRef.current) {
+            meshRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.04;
         }
-        lineGeo.setAttribute("position", new THREE.Float32BufferAttribute(linePositions, 3));
-        lineGeo.setAttribute("color", new THREE.Float32BufferAttribute(lineColors, 3));
-        const lineMat = new THREE.LineBasicMaterial({
-            vertexColors: true,
-            transparent: true,
-            opacity: 0.25,
-            blending: THREE.AdditiveBlending,
-        });
-        const lines = new THREE.LineSegments(lineGeo, lineMat);
-        scene.add(lines);
-
-        // --- Background starfield ---
-        const starCount = 3000;
-        const starPositions = new Float32Array(starCount * 3);
-        for (let i = 0; i < starCount; i++) {
-            starPositions[i * 3] = (Math.random() - 0.5) * 30;
-            starPositions[i * 3 + 1] = (Math.random() - 0.5) * 30;
-            starPositions[i * 3 + 2] = (Math.random() - 0.5) * 20;
-        }
-        const starGeo = new THREE.BufferGeometry();
-        starGeo.setAttribute("position", new THREE.BufferAttribute(starPositions, 3));
-        const starMat = new THREE.PointsMaterial({
-            size: 0.01,
-            color: 0xffffff,
-            transparent: true,
-            opacity: 0.4,
-            blending: THREE.AdditiveBlending,
-        });
-        const stars = new THREE.Points(starGeo, starMat);
-        scene.add(stars);
-
-        // --- Ambient nebula plane ---
-        const planeGeo = new THREE.PlaneGeometry(20, 20);
-        const planeMat = new THREE.ShaderMaterial({
-            uniforms: {
-                time: { value: 0 },
-                primaryColor: { value: new THREE.Vector3(primaryColor.r, primaryColor.g, primaryColor.b) },
-            },
-            vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-            fragmentShader: `
-        uniform float time;
-        uniform vec3 primaryColor;
-        varying vec2 vUv;
-        float noise(vec2 p) {
-          return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
-        }
-        void main() {
-          vec2 uv = vUv;
-          float n = noise(uv * 5.0 + time * 0.05);
-          float n2 = noise(uv * 10.0 - time * 0.03);
-          float intensity = n * n2 * 0.08;
-          vec3 color = primaryColor * intensity + vec3(0.12, 0.0, 0.25) * n2 * 0.05;
-          gl_FragColor = vec4(color, intensity * 0.6);
-        }
-      `,
-            transparent: true,
-            blending: THREE.AdditiveBlending,
-            depthWrite: false,
-        });
-        const plane = new THREE.Mesh(planeGeo, planeMat);
-        plane.position.z = -3;
-        scene.add(plane);
-
-        // Animation
-        let animId: number;
-        const clock = new THREE.Clock();
-
-        const animate = () => {
-            animId = requestAnimationFrame(animate);
-            const elapsed = clock.getElapsedTime();
-
-            // Slowly rotate the DNA helix
-            particles.rotation.y = elapsed * 0.08;
-            lines.rotation.y = elapsed * 0.08;
-            particles.rotation.x = Math.sin(elapsed * 0.05) * 0.2;
-            lines.rotation.x = Math.sin(elapsed * 0.05) * 0.2;
-
-            // Scroll the helix
-            particles.position.y = (elapsed * 0.15) % 2 - 1;
-            lines.position.y = (elapsed * 0.15) % 2 - 1;
-
-            // Stars slow twinkle
-            stars.rotation.y = elapsed * 0.005;
-
-            // Shader time
-            planeMat.uniforms.time.value = elapsed;
-
-            renderer.render(scene, camera);
-        };
-
-        animate();
-
-        const onResize = () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        };
-        window.addEventListener("resize", onResize);
-
-        return () => {
-            cancelAnimationFrame(animId);
-            window.removeEventListener("resize", onResize);
-            renderer.dispose();
-        };
-    }, [healthScore]);
+    });
 
     return (
-        <canvas
-            ref={canvasRef}
-            className="absolute inset-0 w-full h-full"
-            style={{ zIndex: 0 }}
-        />
+        <group ref={meshRef}>
+            {/* Scale to fill viewport: model is ~1.7m tall, we scale to ~3 units */}
+            <primitive object={cloned} scale={[2.6, 2.6, 2.6]} position={[0, -2.2, 0]} />
+        </group>
     );
 }
+
+function HelixParticles() {
+    const pointsRef = useRef<THREE.Points>(null);
+    const { healthScore } = useOSStore();
+
+    const primaryColor =
+        healthScore >= 80 ? new THREE.Color(0x00e5ff)
+            : healthScore >= 60 ? new THREE.Color(0x00e676)
+                : healthScore >= 40 ? new THREE.Color(0xffab40)
+                    : new THREE.Color(0xff1744);
+
+    const geo = useRef<THREE.BufferGeometry | null>(null);
+    if (!geo.current) {
+        const count = 1400;
+        const positions = new Float32Array(count * 3);
+        const colors = new Float32Array(count * 3);
+        for (let i = 0; i < count; i++) {
+            const t = (i / count) * Math.PI * 18;
+            const r = 4.5;
+            if (i % 2 === 0) {
+                positions[i * 3] = Math.cos(t) * r;
+                positions[i * 3 + 1] = t * 0.22 - 20;
+                positions[i * 3 + 2] = Math.sin(t) * r - 1;
+            } else {
+                positions[i * 3] = Math.cos(t + Math.PI) * r;
+                positions[i * 3 + 1] = t * 0.22 - 20;
+                positions[i * 3 + 2] = Math.sin(t + Math.PI) * r - 1;
+            }
+            const c = primaryColor.clone().lerp(new THREE.Color(0x7c3aed), Math.random() * 0.5);
+            colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+        g.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+        geo.current = g;
+    }
+
+    useFrame((state) => {
+        if (pointsRef.current) {
+            pointsRef.current.rotation.y = state.clock.elapsedTime * 0.05;
+            pointsRef.current.position.y = (state.clock.elapsedTime * 0.08) % 4 - 2;
+        }
+    });
+
+    return (
+        <points ref={pointsRef} geometry={geo.current}>
+            <pointsMaterial size={0.022} vertexColors transparent opacity={0.65}
+                blending={THREE.AdditiveBlending} depthWrite={false} sizeAttenuation />
+        </points>
+    );
+}
+
+export default function DesktopWallpaper() {
+    return (
+        <div className="absolute inset-0 w-full h-full" style={{ zIndex: 0, background: "#040810" }}>
+            <Canvas
+                camera={{ position: [0, 0.5, 5], fov: 45, near: 0.1, far: 200 }}
+                gl={{ antialias: true, alpha: false, toneMapping: THREE.ACESFilmicToneMapping }}
+                style={{ width: "100%", height: "100%", display: "block", background: "#040810" }}
+            >
+                {/* Lighting */}
+                <ambientLight intensity={0.3} />
+                <pointLight position={[3, 5, 4]} intensity={2.5} color="#00e5ff" />
+                <pointLight position={[-4, 2, -3]} intensity={1.5} color="#7c3aed" />
+                <pointLight position={[0, -3, 4]} intensity={1.0} color="#00e676" />
+                <pointLight position={[0, 10, 0]} intensity={0.6} color="#ffffff" />
+
+                {/* ── Starfield ── */}
+                <Stars radius={100} depth={80} count={3000} factor={4} saturation={0.1} fade speed={0.3} />
+
+                {/* ── Helix particles ── */}
+                <HelixParticles />
+
+                {/* ── 3D Body — draggable via OrbitControls ── */}
+                <Suspense fallback={null}>
+                    <BodyMesh />
+                    <Environment preset="night" />
+                </Suspense>
+
+                {/* OrbitControls: user can rotate/drag the entire scene */}
+                <OrbitControls
+                    enableZoom={true}
+                    enablePan={false}
+                    minDistance={3}
+                    maxDistance={9}
+                    minPolarAngle={Math.PI * 0.15}
+                    maxPolarAngle={Math.PI * 0.85}
+                    dampingFactor={0.08}
+                    enableDamping
+                    autoRotate={false}
+                    target={[0, 0, 0]}
+                />
+            </Canvas>
+
+            {/* Vignette */}
+            <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 40%, rgba(4,8,16,0.70) 100%)", zIndex: 1 }} />
+            {/* Bottom fade for dock */}
+            <div className="absolute bottom-0 left-0 right-0 h-28 pointer-events-none" style={{ background: "linear-gradient(to top, rgba(4,8,16,0.9), transparent)", zIndex: 1 }} />
+            {/* Top fade for menubar */}
+            <div className="absolute top-0 left-0 right-0 h-14 pointer-events-none" style={{ background: "linear-gradient(to bottom, rgba(4,8,16,0.75), transparent)", zIndex: 1 }} />
+        </div>
+    );
+}
+
+useGLTF.preload("/models/anatomy_lowquality_lowpoly.glb");

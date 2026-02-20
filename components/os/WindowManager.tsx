@@ -56,18 +56,32 @@ const WINDOW_CONFIGS: Record<string, WindowConfig> = {
         defaultSize: { width: 420, height: 480 },
         minSize: { width: 360, height: 400 },
     },
+    settings: {
+        id: "settings",
+        title: "System Settings",
+        icon: "⚙️",
+        defaultSize: { width: 480, height: 500 },
+        minSize: { width: 380, height: 380 },
+    },
 };
 
 interface OSWindowProps {
     appId: string;
     zIndex: number;
     children: React.ReactNode;
+    onClose?: () => void;
+    onFocus?: () => void;
+    isActive?: boolean;
+    title?: string;
 }
 
-export function OSWindow({ appId, zIndex, children }: OSWindowProps) {
+export function OSWindow({ appId, zIndex, children, onClose: onCloseProp, onFocus: onFocusProp, isActive: isActiveProp, title: titleProp }: OSWindowProps) {
     const config = WINDOW_CONFIGS[appId];
     const { closeWindow, focusWindow, activeWindow } = useOSStore();
+    const handleClose = onCloseProp ?? (() => closeWindow(appId));
+    const handleFocus = onFocusProp ?? (() => focusWindow(appId));
     const [minimized, setMinimized] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const [position, setPosition] = useState({
         x: 80 + Object.keys(WINDOW_CONFIGS).indexOf(appId) * 30,
         y: 80 + Object.keys(WINDOW_CONFIGS).indexOf(appId) * 20,
@@ -104,9 +118,11 @@ export function OSWindow({ appId, zIndex, children }: OSWindowProps) {
         };
     }, []);
 
-    if (!config) return null;
+    if (!config && !titleProp) return null;
+    const resolvedTitle = titleProp || config?.title || appId;
+    const resolvedIcon = config?.icon || "🗂️";
 
-    const isActive = activeWindow === appId;
+    const isActive = isActiveProp !== undefined ? isActiveProp : activeWindow === appId;
 
     return (
         <AnimatePresence>
@@ -117,7 +133,15 @@ export function OSWindow({ appId, zIndex, children }: OSWindowProps) {
                     animate={{ scale: 1, opacity: 1, y: 0 }}
                     exit={{ scale: 0.85, opacity: 0, y: 20 }}
                     transition={{ type: "spring", stiffness: 400, damping: 28 }}
-                    style={{
+                    style={isFullscreen ? {
+                        position: "fixed",
+                        left: 0,
+                        top: 28, // below menubar
+                        width: "100vw",
+                        height: "calc(100vh - 28px - 76px)", // leave dock space
+                        zIndex: zIndex + 200,
+                        borderRadius: 0,
+                    } : {
                         position: "fixed",
                         left: position.x,
                         top: position.y,
@@ -125,20 +149,21 @@ export function OSWindow({ appId, zIndex, children }: OSWindowProps) {
                         height: size.height,
                         zIndex: zIndex + (isActive ? 100 : 0),
                     }}
-                    className={`os-window select-none ${isActive ? "ring-1 ring-white/10" : "opacity-95"}`}
-                    onMouseDown={() => focusWindow(appId)}
+                    className={`os-window select-none ${isActive ? "ring-1 ring-white/10" : "opacity-95"} ${isFullscreen ? "rounded-none" : ""}`}
+                    onMouseDown={() => handleFocus()}
                 >
                     {/* Title Bar */}
                     <div
                         className="os-window-titlebar cursor-move"
-                        onMouseDown={onMouseDown}
+                        onMouseDown={isFullscreen ? undefined : onMouseDown}
+                        onDoubleClick={() => setIsFullscreen(!isFullscreen)}
                     >
                         <div className="flex items-center gap-1.5">
                             {/* Traffic lights */}
                             <button
                                 className="os-window-btn bg-[#ff5f57] hover:bg-[#ff3b30]"
                                 onMouseDown={(e) => e.stopPropagation()}
-                                onClick={() => closeWindow(appId)}
+                                onClick={handleClose}
                             />
                             <button
                                 className="os-window-btn bg-[#febc2e] hover:bg-[#ffa800]"
@@ -147,12 +172,14 @@ export function OSWindow({ appId, zIndex, children }: OSWindowProps) {
                             />
                             <button
                                 className="os-window-btn bg-[#28c840] hover:bg-[#00c21b]"
+                                title="Fullscreen"
                                 onMouseDown={(e) => e.stopPropagation()}
+                                onClick={() => setIsFullscreen(!isFullscreen)}
                             />
                         </div>
                         <div className="flex items-center gap-2 ml-4">
-                            <span className="text-base">{config.icon}</span>
-                            <span className="text-xs font-medium text-white/70">{config.title}</span>
+                            <span className="text-base">{resolvedIcon}</span>
+                            <span className="text-xs font-medium text-white/70">{resolvedTitle}</span>
                         </div>
                     </div>
 

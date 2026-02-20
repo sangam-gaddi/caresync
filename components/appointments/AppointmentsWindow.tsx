@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useOSStore } from "@/lib/store";
 import {
     Calendar, AlertCircle, CheckCircle, Plus, Loader2
@@ -30,11 +30,7 @@ export default function AppointmentsWindow() {
         notes: "",
     });
 
-    useEffect(() => {
-        fetchAppointments();
-    }, [patientId]);
-
-    async function fetchAppointments() {
+    const fetchAppointments = useCallback(async () => {
         setLoading(true);
         try {
             const url = patientId
@@ -44,12 +40,15 @@ export default function AppointmentsWindow() {
             const data = await res.json();
             setAppointments(data.data || []);
         } catch {
-            // use demo data if API fails
             setAppointments([]);
         } finally {
             setLoading(false);
         }
-    }
+    }, [patientId]);
+
+    useEffect(() => {
+        fetchAppointments();
+    }, [fetchAppointments]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
