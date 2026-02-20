@@ -108,7 +108,7 @@ export default function BodyScene() {
 
             {/* Organ legends */}
             <div className="absolute top-4 right-4 z-10 flex flex-col gap-1.5">
-                {avatarState?.organs &&
+                {avatarState?.organs ?
                     Object.entries(avatarState.organs as Record<string, Record<string, unknown>>).map(([name, data]) => (
                         <div key={name} className="flex items-center gap-2 os-glass px-2 py-1 rounded-lg">
                             <div
@@ -132,7 +132,7 @@ export default function BodyScene() {
                                 {data.status as string}
                             </span>
                         </div>
-                    ))}
+                    )) : null}
             </div>
 
             {/* Scan line effect */}
