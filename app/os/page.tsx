@@ -15,6 +15,7 @@ import AppointmentsWindow from "@/components/appointments/AppointmentsWindow";
 import AIDoctorWindow from "@/components/ai-doctor/AIDoctorWindow";
 import { OSWindow } from "@/components/os/WindowManager";
 import ControlCenter from "@/components/os/ControlCenter";
+import ClinicalStats from "@/components/os/ClinicalStats";
 
 // SSR-safe dynamic imports
 const DesktopWallpaper = dynamic(() => import("@/components/os/HealthWallpaper"), { ssr: false });
@@ -160,7 +161,7 @@ function Menubar({
 
     return (
         <div
-            className="fixed top-0 left-0 right-0 h-7 flex items-center px-3 select-none"
+            className="fixed top-0 left-0 right-0 h-8 flex items-center px-3 select-none"
             style={{ background: barBg, backdropFilter: "blur(24px) saturate(180%)", borderBottom: `1px solid ${barBorder}`, zIndex: 9990 }}
         >
             {/* LEFT: Logo + app menus */}
@@ -183,7 +184,7 @@ function Menubar({
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -4 }}
                                 transition={{ duration: 0.12 }}
-                                className="absolute top-7 left-0 w-54 rounded-xl py-1 shadow-2xl"
+                                className="absolute top-8 left-0 w-54 rounded-xl py-1 shadow-2xl"
                                 style={{ background: menuDropBg, backdropFilter: "blur(40px)", border: `1px solid ${menuDropBorder}`, minWidth: "220px" }}
                             >
                                 <div className="px-4 py-2 border-b mb-1" style={{ borderColor: barBorder }}>
@@ -357,98 +358,18 @@ function Spotlight({ onClose, onOpenApp }: { onClose: () => void; onOpenApp: (id
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// DESKTOP HEALTH WIDGETS — full-width horizontal stats bar
+// DESKTOP HEALTH WIDGETS — replaced by ClinicalStats vertical sidebar
 // ─────────────────────────────────────────────────────────────────────────────
-function DesktopWidgets() {
-    const { healthScore, avatarState, isDarkMode } = useOSStore();
-    const organs = (avatarState?.organs || {}) as Record<string, { status: string; color: string }>;
-    const hc = healthScore >= 80 ? "#00e676" : healthScore >= 60 ? "#ffab40" : "#ff1744";
-    const label = healthScore >= 80 ? "Excellent" : healthScore >= 60 ? "Good" : healthScore >= 40 ? "Fair" : "Critical";
-
-    const widgetBg = isDarkMode ? "rgba(4,8,16,0.65)" : "rgba(255,255,255,0.55)";
-    const widgetBorder = isDarkMode ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)";
-    const labelColor = isDarkMode ? "rgba(255,255,255,0.35)" : "rgba(0,0,0,0.40)";
-    const textMain = isDarkMode ? "#ffffff" : "#1d1d1f";
-    const textSub = isDarkMode ? "rgba(255,255,255,0.55)" : "rgba(0,0,0,0.50)";
-
-    const vitals = [
-        { label: "Heart Rate", value: "72 BPM", icon: <Heart className="w-3.5 h-3.5" />, color: organs.heart?.color || "#ff4d6d" },
-        { label: "Brain Stress", value: "Low", icon: <Brain className="w-3.5 h-3.5" />, color: organs.brain?.color || "#a855f7" },
-        { label: "Lung O₂", value: "98%", icon: <Wind className="w-3.5 h-3.5" />, color: organs.lungs?.color || "#00e5ff" },
-    ];
-
-    return (
-        <div
-            className="absolute left-4 right-4 flex items-center gap-3"
-            style={{ top: "36px", zIndex: 50, pointerEvents: "none" }}
-        >
-            {/* Health Score */}
-            <div
-                className="flex items-center gap-3 px-4 py-2.5 rounded-2xl shrink-0"
-                style={{ background: widgetBg, backdropFilter: "blur(20px)", border: `1px solid ${hc}30` }}
-            >
-                <div>
-                    <div className="text-3xl font-black tabular-nums leading-none" style={{ color: hc }}>{healthScore}</div>
-                    <div className="text-[8px] uppercase tracking-widest mt-0.5" style={{ color: labelColor }}>Health Score</div>
-                </div>
-                <div>
-                    <div className="text-[11px] font-semibold" style={{ color: hc }}>{label}</div>
-                    <div className="mt-1 w-20 h-1 rounded-full overflow-hidden" style={{ background: isDarkMode ? "rgba(255,255,255,0.10)" : "rgba(0,0,0,0.10)" }}>
-                        <div className="h-full rounded-full" style={{ width: `${healthScore}%`, background: hc }} />
-                    </div>
-                </div>
-            </div>
-
-            {/* Vitals */}
-            <div
-                className="flex items-center gap-4 px-4 py-2.5 rounded-2xl flex-1"
-                style={{ background: widgetBg, backdropFilter: "blur(20px)", border: `1px solid ${widgetBorder}` }}
-            >
-                <span className="text-[9px] uppercase tracking-widest shrink-0" style={{ color: labelColor }}>Vitals</span>
-                {vitals.map((v) => (
-                    <div key={v.label} className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${v.color}22` }}>
-                            <span style={{ color: v.color }}>{v.icon}</span>
-                        </div>
-                        <div>
-                            <div className="text-[11px] font-semibold tabular-nums" style={{ color: textMain }}>{v.value}</div>
-                            <div className="text-[8px]" style={{ color: labelColor }}>{v.label}</div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            {/* Organ Status */}
-            {Object.keys(organs).length > 0 && (
-                <div
-                    className="flex items-center gap-3 px-4 py-2.5 rounded-2xl"
-                    style={{ background: widgetBg, backdropFilter: "blur(20px)", border: `1px solid ${widgetBorder}` }}
-                >
-                    <span className="text-[9px] uppercase tracking-widest shrink-0" style={{ color: labelColor }}>Organs</span>
-                    {Object.entries(organs).slice(0, 5).map(([name, data]) => (
-                        <div key={name} className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full shrink-0" style={{ background: data.color }} />
-                            <span className="text-[10px] capitalize" style={{ color: textSub }}>{name}</span>
-                            <span className={`text-[9px] ${data.status === "healthy" ? "text-green-400" : data.status === "warning" ? "text-amber-400" : "text-red-400"}`}>
-                                {data.status === "healthy" ? "✓" : "!"}
-                            </span>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-}
 
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DOCK — physics magnification, no Body app (it's in wallpaper)
 // ─────────────────────────────────────────────────────────────────────────────
 const DOCK_APPS = [
-    { id: "ai-doctor", label: "Dr. ARIA", icon: <Stethoscope className="w-7 h-7 text-white" />, bg: "from-purple-500 to-indigo-600", emoji: null },
+    { id: "ai-doctor", label: "Dr. ARIA", icon: <Stethoscope className="w-8 h-8 text-white" />, bg: "from-purple-500 to-indigo-600", emoji: null },
     { id: "appointments", label: "Appointments", icon: null, bg: "from-blue-500 to-sky-600", emoji: "📅" },
-    { id: "dashboard", label: "Dashboard", icon: <Activity className="w-7 h-7 text-white" />, bg: "from-cyan-500 to-teal-600", emoji: null },
-    { id: "settings", label: "Settings", icon: <Settings className="w-7 h-7 text-white" />, bg: "from-slate-600 to-gray-700", emoji: null },
+    { id: "dashboard", label: "Dashboard", icon: <Activity className="w-8 h-8 text-white" />, bg: "from-cyan-500 to-teal-600", emoji: null },
+    { id: "settings", label: "Settings", icon: <Settings className="w-8 h-8 text-white" />, bg: "from-slate-600 to-gray-700", emoji: null },
 ];
 
 function MacDock({ onAppClick, openIds }: { onAppClick: (id: string) => void; openIds: string[] }) {
@@ -481,7 +402,7 @@ function MacDock({ onAppClick, openIds }: { onAppClick: (id: string) => void; op
         <div className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[9980]">
             <div
                 ref={dockRef}
-                className="flex items-end gap-2 px-4 pb-2 pt-2 rounded-2xl"
+                className="flex items-end gap-2.5 px-5 pb-2.5 pt-2.5 rounded-3xl"
                 style={{ background: dockBg, backdropFilter: "blur(28px) saturate(180%)", border: `1px solid ${dockBorder}`, boxShadow: dockShadow }}
                 onMouseMove={(e) => {
                     if (dockRef.current) {
@@ -523,13 +444,13 @@ function MacDock({ onAppClick, openIds }: { onAppClick: (id: string) => void; op
 
                             {/* Icon */}
                             <div
-                                className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${app.bg} flex items-center justify-center shadow-lg relative overflow-hidden`}
+                                className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${app.bg} flex items-center justify-center shadow-lg relative overflow-hidden`}
                                 style={{ boxShadow: isOpen ? `0 0 18px 3px rgba(0,229,255,0.35)` : "0 4px 16px rgba(0,0,0,0.4)" }}
                             >
                                 {/* Glass sheen */}
                                 <div className="absolute inset-0 bg-gradient-to-b from-white/20 to-transparent rounded-2xl" />
                                 {app.emoji ? (
-                                    <span className="text-3xl relative z-10">{app.emoji}</span>
+                                    <span className="text-4xl relative z-10">{app.emoji}</span>
                                 ) : (
                                     <span className="relative z-10">{app.icon}</span>
                                 )}
@@ -791,8 +712,8 @@ function OSPageContent() {
             {/* ── 3. DYNAMIC ISLAND ── */}
             <DynamicIsland />
 
-            {/* ── 4. DESKTOP WIDGETS ── */}
-            <DesktopWidgets />
+            {/* ── 4. CLINICAL STATS VERTICAL SIDEBAR ── */}
+            <ClinicalStats />
 
             {/* ── 5. APP WINDOWS ── */}
             {openWindows.map((appId, index) => (

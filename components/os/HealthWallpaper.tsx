@@ -139,7 +139,7 @@ export default function DesktopWallpaper() {
                     zIndex: 1,
                     background: isDarkMode
                         ? "rgba(4,8,16,0.55)"
-                        : "rgba(230,235,240,0.40)",
+                        : "rgba(235,240,245,0.50)",
                 }}
             />
 
@@ -206,6 +206,22 @@ export default function DesktopWallpaper() {
                 background: isDarkMode
                     ? "linear-gradient(to bottom, rgba(4,8,16,0.75), transparent)"
                     : "linear-gradient(to bottom, rgba(220,225,230,0.6), transparent)",
+                zIndex: 3
+            }} />
+            {/* Left fade for clinical stats panel readability */}
+            <div className="absolute top-0 left-0 bottom-0 pointer-events-none" style={{
+                width: "280px",
+                background: isDarkMode
+                    ? "linear-gradient(to right, rgba(4,8,16,0.60) 0%, rgba(4,8,16,0.30) 60%, transparent 100%)"
+                    : "linear-gradient(to right, rgba(230,235,240,0.55) 0%, rgba(230,235,240,0.20) 60%, transparent 100%)",
+                zIndex: 3
+            }} />
+            {/* Right fade for clinical stats panel readability */}
+            <div className="absolute top-0 right-0 bottom-0 pointer-events-none" style={{
+                width: "280px",
+                background: isDarkMode
+                    ? "linear-gradient(to left, rgba(4,8,16,0.60) 0%, rgba(4,8,16,0.30) 60%, transparent 100%)"
+                    : "linear-gradient(to left, rgba(230,235,240,0.55) 0%, rgba(230,235,240,0.20) 60%, transparent 100%)",
                 zIndex: 3
             }} />
         </div>

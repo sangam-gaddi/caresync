@@ -57,6 +57,15 @@
 }
 
 @layer components {
+  /* Hide scrollbar utility */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* OS Glass Panel */
   .os-glass {
     @apply bg-[#0d1421]/80 backdrop-blur-xl border border-[#1e2a3a];
