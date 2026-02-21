@@ -6,9 +6,11 @@ import { useOSStore } from "@/lib/store";
 import {
     X, ChevronRight, ChevronLeft, Calendar, Clock, User, Star,
     CheckCircle, MapPin, Video, Search, Loader2, Heart, Brain,
-    Wind, Stethoscope, Bone, Smile, Activity, Download, Minimize2
+    Wind, Stethoscope, Bone, Smile, Activity, Download, Minimize2, Wallet
 } from "lucide-react";
 import jsPDF from "jspdf";
+import { PaymentProviders } from "@/components/providers/PaymentProviders";
+import CryptoPayment from "@/components/payment/CryptoPayment";
 
 // ── Types ──
 interface Specialist {
@@ -56,6 +58,7 @@ const STEPS = [
     { label: "Specialist", icon: <User className="w-4 h-4" /> },
     { label: "Date & Time", icon: <Calendar className="w-4 h-4" /> },
     { label: "Your Details", icon: <Stethoscope className="w-4 h-4" /> },
+    { label: "Payment", icon: <Wallet className="w-4 h-4" /> },
     { label: "Confirm", icon: <CheckCircle className="w-4 h-4" /> },
 ];
 
@@ -87,6 +90,7 @@ export default function AppointmentBooking({ onClose, onMinimize, isEmbedded }: 
     const [filterDept, setFilterDept] = useState<string | null>(null);
     const [booked, setBooked] = useState(false);
     const [bookedData, setBookedData] = useState<Record<string, unknown> | null>(null);
+    const [paymentTxHash, setPaymentTxHash] = useState<string | null>(null);
 
     // Fetch cities initially
     useEffect(() => {
@@ -199,6 +203,7 @@ export default function AppointmentBooking({ onClose, onMinimize, isEmbedded }: 
         if (step === 2) return !!booking.specialist;
         if (step === 3) return !!booking.date && !!booking.timeSlot;
         if (step === 4) return !!booking.patient.name && !!booking.patient.phone && !!booking.patient.reason;
+        if (step === 5) return !!paymentTxHash;
         return true;
     };
 
@@ -290,7 +295,7 @@ export default function AppointmentBooking({ onClose, onMinimize, isEmbedded }: 
             </div>
 
             {/* Forward / Confirm button */}
-            {step < 5 ? (
+            {step < 6 ? (
                 <button onClick={() => canNext() && setStep(step + 1)} disabled={!canNext()}
                     className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${canNext()
                         ? "bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:from-blue-400 hover:to-cyan-400 shadow-[0_0_20px_rgba(0,150,255,0.3)]"
@@ -335,8 +340,12 @@ export default function AppointmentBooking({ onClose, onMinimize, isEmbedded }: 
                 ) : step === 4 ? (
                     <Step4PatientInfo key="s4" patient={booking.patient}
                         onChange={(p) => setBooking(b => ({ ...b, patient: p }))} />
+                ) : step === 5 ? (
+                    <Step5Payment key="s5" consultationFee={booking.specialist?.consultationFee || 0}
+                        onSuccess={(txHash) => { setPaymentTxHash(txHash); setStep(6); }}
+                        paymentCompleted={!!paymentTxHash} txHash={paymentTxHash} />
                 ) : (
-                    <Step5Review key="s5" booking={booking} loading={loadingCities} onConfirm={handleBook} />
+                    <Step6Review key="s6" booking={booking} loading={loadingCities} onConfirm={handleBook} txHash={paymentTxHash} />
                 )}
             </AnimatePresence>
         </div>
@@ -744,10 +753,53 @@ function Step4PatientInfo({ patient, onChange }: {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// STEP 5 — Review & Confirm
+// STEP 5 — Payment (Sepolia ETH)
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function Step5Review({ booking, loading, onConfirm }: {
-    booking: BookingState; loading: boolean; onConfirm: () => void;
+function Step5Payment({ consultationFee, onSuccess, paymentCompleted, txHash }: {
+    consultationFee: number; onSuccess: (txHash: string) => void;
+    paymentCompleted: boolean; txHash: string | null;
+}) {
+    return (
+        <motion.div initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }}
+            transition={{ duration: 0.3 }} className="max-w-lg mx-auto p-6 space-y-5">
+            <div>
+                <h2 className="text-xl font-bold text-white mb-1">Payment</h2>
+                <p className="text-sm text-white/40">Complete payment via Sepolia ETH to confirm your appointment</p>
+            </div>
+
+            {paymentCompleted ? (
+                <div className="p-6 rounded-2xl bg-green-500/10 border border-green-500/30 text-center space-y-3">
+                    <CheckCircle className="w-12 h-12 text-green-400 mx-auto" />
+                    <p className="text-green-400 font-semibold">Payment Successful!</p>
+                    <p className="text-xs text-white/40 break-all">Tx: {txHash}</p>
+                    <p className="text-xs text-white/50">Click &quot;Continue&quot; to review and confirm your appointment.</p>
+                </div>
+            ) : (
+                <PaymentProviders>
+                    <div className="space-y-4">
+                        <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/8">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs text-white/40">Consultation Fee</span>
+                                <span className="text-lg font-bold text-green-400">${consultationFee}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-white/40">ETH Payment Amount</span>
+                                <span className="text-sm font-semibold text-purple-400">0.0000001 Sepolia ETH</span>
+                            </div>
+                        </div>
+                        <CryptoPayment amount={consultationFee} onSuccess={onSuccess} />
+                    </div>
+                </PaymentProviders>
+            )}
+        </motion.div>
+    );
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STEP 6 — Review & Confirm
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function Step6Review({ booking, loading, onConfirm, txHash }: {
+    booking: BookingState; loading: boolean; onConfirm: () => void; txHash: string | null;
 }) {
     const s = booking.specialist!;
     const deptColor = DEPT_COLORS[s.department] || "#00e5ff";
@@ -794,6 +846,16 @@ function Step5Review({ booking, loading, onConfirm }: {
                     <span className="text-xs text-white/40">Consultation Fee</span>
                     <span className="text-lg font-bold text-green-400">${s.consultationFee}</span>
                 </div>
+                {/* Payment confirmation */}
+                {txHash && (
+                    <div className="p-4 border-t border-white/8">
+                        <div className="flex items-center gap-2 mb-1">
+                            <CheckCircle className="w-3.5 h-3.5 text-green-400" />
+                            <span className="text-xs text-green-400 font-medium">Payment Confirmed (Sepolia ETH)</span>
+                        </div>
+                        <p className="text-[10px] text-white/30 break-all">Tx: {txHash}</p>
+                    </div>
+                )}
             </div>
         </motion.div>
     );

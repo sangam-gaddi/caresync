@@ -6,17 +6,18 @@ import {
     BarChart3, Settings, ShieldCheck, Activity, Search, Bell,
     LogOut, ChevronDown, Calendar, RefreshCcw, Loader2, ArrowUpRight,
     Plus, Download, CheckCircle, XCircle, Clock4, User, Phone, Mail, Clock,
-    Stethoscope, Star, ChevronRight, Video, MapPin, MoreVertical
+    Stethoscope, Star, ChevronRight, Video, MapPin, MoreVertical, MessageCircle, Send
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useOSStore } from "@/lib/store";
+import { useChat } from "@/hooks/useChat";
 
 // Components extracted from previous steps but adapted for window-based flow
 import DashboardStats from "./DashboardStats";
 import RevenueChart from "./RevenueChart";
 import RecentAppointments from "./RecentAppointments";
 
-type AdminTab = "dashboard" | "patients" | "doctors" | "hospitals" | "analytics" | "settings";
+type AdminTab = "dashboard" | "patients" | "doctors" | "hospitals" | "analytics" | "chat" | "settings";
 
 export default function AdminPanelWindow() {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -88,6 +89,7 @@ export default function AdminPanelWindow() {
                         { id: "patients", label: "Patients", icon: Users },
                         { id: "doctors", label: "Doctors", icon: UserRound },
                         { id: "hospitals", label: "Hospitals", icon: HospitalIcon },
+                        { id: "chat", label: "Chat", icon: MessageCircle },
                         { id: "analytics", label: "Analytics", icon: BarChart3 },
                         { id: "settings", label: "Settings", icon: Settings },
                     ].map((item) => (
@@ -143,6 +145,7 @@ export default function AdminPanelWindow() {
                     {activeTab === "patients" && <PatientsContent />}
                     {activeTab === "doctors" && <DoctorsContent />}
                     {activeTab === "hospitals" && <HospitalsContent />}
+                    {activeTab === "chat" && <ChatContent />}
                     {activeTab === "analytics" && <p className="text-white/20 text-xs text-center py-20 uppercase font-black tracking-widest">Analytics Module Loading...</p>}
                     {activeTab === "settings" && <p className="text-white/20 text-xs text-center py-20 uppercase font-black tracking-widest">Admin Settings Control</p>}
                 </main>
@@ -376,6 +379,171 @@ function HospitalsContent() {
                     </div>
                 </div>
             ))}
+        </div>
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHAT VIEW (Doctor ↔ Patient Real-time Chat)
+// ─────────────────────────────────────────────────────────────────────────────
+function ChatContent() {
+    const adminId = "admin-doctor";
+    const adminName = "Dr. Admin";
+    const {
+        isConnected, globalMessages, privateMessages, onlineUsers,
+        typingUsers, sendGlobalMessage, sendPrivateMessage, emitTypingGlobal, emitTypingPrivate,
+    } = useChat(adminId, adminName);
+
+    const [activeChat, setActiveChat] = useState<string | null>(null);
+    const [message, setMessage] = useState("");
+    const messagesEndRef = useState<HTMLDivElement | null>(null);
+
+    const activeChatUser = onlineUsers.find(u => u.usn === activeChat);
+    const currentMessages = activeChat ? (privateMessages[activeChat] || []) : globalMessages;
+
+    const handleSend = () => {
+        if (!message.trim()) return;
+        if (activeChat) {
+            sendPrivateMessage(activeChat, message.trim());
+        } else {
+            sendGlobalMessage(message.trim());
+        }
+        setMessage("");
+    };
+
+    const handleTyping = () => {
+        if (activeChat) {
+            emitTypingPrivate(activeChat);
+        } else {
+            emitTypingGlobal();
+        }
+    };
+
+    return (
+        <div className="flex h-[calc(100vh-12rem)] rounded-2xl border border-white/5 overflow-hidden bg-[#0c1220]">
+            {/* Users sidebar */}
+            <div className="w-64 border-r border-white/5 flex flex-col">
+                <div className="p-4 border-b border-white/5">
+                    <div className="flex items-center gap-2 mb-3">
+                        <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500" : "bg-red-500"} animate-pulse`} />
+                        <span className="text-[9px] font-black uppercase tracking-widest text-white/30">
+                            {isConnected ? "Connected" : "Connecting..."}
+                        </span>
+                    </div>
+                    <p className="text-[10px] text-white/20">{onlineUsers.length} patient(s) online</p>
+                </div>
+
+                {/* Global Chat button */}
+                <button onClick={() => setActiveChat(null)}
+                    className={`flex items-center gap-3 px-4 py-3 text-left transition-all ${!activeChat ? "bg-blue-500/10 border-l-2 border-blue-500" : "hover:bg-white/3 border-l-2 border-transparent"}`}>
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                        <MessageCircle className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                        <p className="text-[11px] font-bold text-white">Global Chat</p>
+                        <p className="text-[9px] text-white/30">All patients</p>
+                    </div>
+                </button>
+
+                {/* Online patients */}
+                <div className="flex-1 overflow-y-auto">
+                    <p className="text-[8px] font-black uppercase tracking-widest text-white/20 px-4 py-2">Online Patients</p>
+                    {onlineUsers.map(user => (
+                        <button key={user.usn} onClick={() => setActiveChat(user.usn)}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-left transition-all ${activeChat === user.usn ? "bg-purple-500/10 border-l-2 border-purple-500" : "hover:bg-white/3 border-l-2 border-transparent"}`}>
+                            <div className="w-7 h-7 rounded-lg bg-purple-500/20 flex items-center justify-center text-[10px] font-bold text-purple-400">
+                                {user.name?.charAt(0)?.toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                                <p className="text-[10px] font-bold text-white truncate">{user.name}</p>
+                                <p className="text-[8px] text-white/20">{user.usn}</p>
+                            </div>
+                            <div className="w-1.5 h-1.5 rounded-full bg-green-500 ml-auto shrink-0" />
+                        </button>
+                    ))}
+                    {onlineUsers.length === 0 && (
+                        <p className="text-[10px] text-white/15 text-center py-8">No patients online</p>
+                    )}
+                </div>
+            </div>
+
+            {/* Chat area */}
+            <div className="flex-1 flex flex-col">
+                {/* Header */}
+                <div className="px-5 py-3 border-b border-white/5 flex items-center gap-3">
+                    {activeChat ? (
+                        <>
+                            <div className="w-8 h-8 rounded-lg bg-purple-500/20 flex items-center justify-center text-[11px] font-bold text-purple-400">
+                                {activeChatUser?.name?.charAt(0)?.toUpperCase()}
+                            </div>
+                            <div>
+                                <p className="text-xs font-black">{activeChatUser?.name || activeChat}</p>
+                                <p className="text-[9px] text-white/30">Private conversation</p>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+                                <MessageCircle className="w-4 h-4 text-white" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-black">Global Chat</p>
+                                <p className="text-[9px] text-white/30">All connected users</p>
+                            </div>
+                        </>
+                    )}
+                    {typingUsers.size > 0 && (
+                        <span className="text-[9px] text-blue-400 ml-auto animate-pulse">Someone is typing...</span>
+                    )}
+                </div>
+
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                    {currentMessages.length === 0 && (
+                        <div className="flex flex-col items-center justify-center h-full text-center">
+                            <MessageCircle className="w-10 h-10 text-white/10 mb-3" />
+                            <p className="text-xs text-white/20">No messages yet</p>
+                            <p className="text-[10px] text-white/10 mt-1">Start the conversation with your patients</p>
+                        </div>
+                    )}
+                    {currentMessages.map((msg, i) => {
+                        const isMine = msg.senderUsn === adminId;
+                        return (
+                            <div key={i} className={`flex ${isMine ? "justify-end" : "justify-start"}`}>
+                                <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl ${isMine
+                                    ? "bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border border-blue-500/20"
+                                    : "bg-white/5 border border-white/5"
+                                    }`}>
+                                    {!isMine && (
+                                        <p className="text-[9px] font-bold text-purple-400 mb-1">{msg.senderName}</p>
+                                    )}
+                                    <p className="text-xs text-white/80">{msg.message}</p>
+                                    <p className="text-[8px] text-white/20 mt-1">
+                                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </p>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Input */}
+                <div className="p-4 border-t border-white/5">
+                    <div className="flex items-center gap-3">
+                        <input
+                            value={message}
+                            onChange={e => { setMessage(e.target.value); handleTyping(); }}
+                            onKeyDown={e => e.key === "Enter" && handleSend()}
+                            placeholder={activeChat ? `Message ${activeChatUser?.name || "patient"}...` : "Send a global message..."}
+                            className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-xs text-white placeholder-white/20 outline-none focus:border-blue-500/40 transition-colors"
+                        />
+                        <button onClick={handleSend} disabled={!message.trim() || !isConnected}
+                            className="w-10 h-10 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 flex items-center justify-center text-white hover:from-blue-400 hover:to-cyan-400 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg">
+                            <Send className="w-4 h-4" />
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

@@ -70,6 +70,13 @@ const WINDOW_CONFIGS: Record<string, WindowConfig> = {
         defaultSize: { width: 900, height: 600 },
         minSize: { width: 600, height: 400 },
     },
+    chat: {
+        id: "chat",
+        title: "Chat",
+        icon: "💬",
+        defaultSize: { width: 750, height: 520 },
+        minSize: { width: 500, height: 350 },
+    },
 };
 
 interface OSWindowProps {
