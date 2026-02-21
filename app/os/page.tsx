@@ -6,12 +6,13 @@ import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
 import {
     Activity, Heart, Brain, Wind, Search, Wifi, WifiOff,
-    Stethoscope, Settings, ChevronRight,
+    Stethoscope, Settings, ChevronRight, Shield,
     Power, Moon, Sun, RotateCcw, LogOut, X, SlidersHorizontal
 } from "lucide-react";
 import { useOSStore } from "@/lib/store";
 import DynamicIsland from "@/components/os/DynamicIsland";
 import AppointmentsWindow from "@/components/appointments/AppointmentsWindow";
+import AdminPanelWindow from "@/components/admin/AdminPanelWindow";
 import AIDoctorWindow from "@/components/ai-doctor/AIDoctorWindow";
 import { OSWindow } from "@/components/os/WindowManager";
 import ControlCenter from "@/components/os/ControlCenter";
@@ -285,6 +286,7 @@ function Menubar({
 const SPOTLIGHT_APPS = [
     { id: "ai-doctor", label: "Dr. ARIA – AI Doctor", icon: "🩺", desc: "Chat or talk to your AI doctor" },
     { id: "appointments", label: "Appointments", icon: "📅", desc: "Book and manage appointments" },
+    { id: "admin-panel", label: "Admin Dashboard", icon: "🛡️", desc: "Hospital admin panel" },
     { id: "dashboard", label: "Health Dashboard", icon: "📊", desc: "View health score and organ status" },
     { id: "settings", label: "System Settings", icon: "⚙️", desc: "Configure HealthOS" },
 ];
@@ -368,6 +370,7 @@ function Spotlight({ onClose, onOpenApp }: { onClose: () => void; onOpenApp: (id
 const DOCK_APPS = [
     { id: "ai-doctor", label: "Dr. ARIA", icon: <Stethoscope className="w-8 h-8 text-white" />, bg: "from-purple-500 to-indigo-600", emoji: null },
     { id: "appointments", label: "Appointments", icon: null, bg: "from-blue-500 to-sky-600", emoji: "📅" },
+    { id: "admin-panel", label: "Admin", icon: <Shield className="w-8 h-8 text-white" />, bg: "from-rose-500 to-pink-600", emoji: null },
     { id: "dashboard", label: "Dashboard", icon: <Activity className="w-8 h-8 text-white" />, bg: "from-cyan-500 to-teal-600", emoji: null },
     { id: "settings", label: "Settings", icon: <Settings className="w-8 h-8 text-white" />, bg: "from-slate-600 to-gray-700", emoji: null },
 ];
@@ -669,6 +672,7 @@ function OSPageContent() {
     const windowTitles: Record<string, string> = {
         "ai-doctor": "Dr. ARIA — AI Doctor",
         appointments: "Appointments",
+        "admin-panel": "Admin Dashboard",
         dashboard: "Health Dashboard",
         settings: "System Settings",
     };
@@ -676,6 +680,7 @@ function OSPageContent() {
     const windowContents: Record<string, React.ReactNode> = {
         "ai-doctor": <AIDoctorWindow />,
         appointments: <AppointmentsWindow />,
+        "admin-panel": <AdminPanelWindow />,
         dashboard: <DashboardWindow />,
         settings: <SettingsWindow />,
     };

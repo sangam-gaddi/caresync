@@ -63,6 +63,13 @@ const WINDOW_CONFIGS: Record<string, WindowConfig> = {
         defaultSize: { width: 480, height: 500 },
         minSize: { width: 380, height: 380 },
     },
+    "admin-panel": {
+        id: "admin-panel",
+        title: "Admin Dashboard",
+        icon: "🛡️",
+        defaultSize: { width: 900, height: 600 },
+        minSize: { width: 600, height: 400 },
+    },
 };
 
 interface OSWindowProps {
@@ -80,17 +87,26 @@ export function OSWindow({ appId, zIndex, children, onClose: onCloseProp, onFocu
     const { closeWindow, focusWindow, activeWindow } = useOSStore();
     const handleClose = onCloseProp ?? (() => closeWindow(appId));
     const handleFocus = onFocusProp ?? (() => focusWindow(appId));
+    const isActive = isActiveProp !== undefined ? isActiveProp : activeWindow === appId;
     const [minimized, setMinimized] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [position, setPosition] = useState({
         x: 80 + Object.keys(WINDOW_CONFIGS).indexOf(appId) * 30,
         y: 80 + Object.keys(WINDOW_CONFIGS).indexOf(appId) * 20,
     });
-    const [size] = useState(config?.defaultSize || { width: 600, height: 480 });
+    const [size, setSize] = useState(config?.defaultSize || { width: 600, height: 480 });
+    const minSize = config?.minSize || { width: 300, height: 250 };
 
     const dragging = useRef(false);
     const dragOffset = useRef({ x: 0, y: 0 });
+    const resizing = useRef(false);
+    const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0 });
     const windowRef = useRef<HTMLDivElement>(null);
+
+    // Restore from minimized when focused via dock
+    useEffect(() => {
+        if (isActive && minimized) setMinimized(false);
+    }, [isActive, minimized]);
 
     const onMouseDown = useCallback(
         (e: React.MouseEvent) => {
@@ -101,28 +117,50 @@ export function OSWindow({ appId, zIndex, children, onClose: onCloseProp, onFocu
         [position, appId, focusWindow]
     );
 
+    const onResizeStart = useCallback(
+        (e: React.MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            resizing.current = true;
+            resizeStart.current = { x: e.clientX, y: e.clientY, w: size.width, h: size.height };
+            focusWindow(appId);
+        },
+        [size, appId, focusWindow]
+    );
+
     useEffect(() => {
         const onMove = (e: MouseEvent) => {
-            if (!dragging.current) return;
-            setPosition({
-                x: Math.max(0, e.clientX - dragOffset.current.x),
-                y: Math.max(0, e.clientY - dragOffset.current.y),
-            });
+            if (dragging.current) {
+                setPosition({
+                    x: Math.max(0, e.clientX - dragOffset.current.x),
+                    y: Math.max(28, e.clientY - dragOffset.current.y),
+                });
+            }
+            if (resizing.current) {
+                const dx = e.clientX - resizeStart.current.x;
+                const dy = e.clientY - resizeStart.current.y;
+                setSize({
+                    width: Math.max(minSize.width, resizeStart.current.w + dx),
+                    height: Math.max(minSize.height, resizeStart.current.h + dy),
+                });
+            }
         };
-        const onUp = () => { dragging.current = false; };
+        const onUp = () => {
+            dragging.current = false;
+            resizing.current = false;
+        };
         window.addEventListener("mousemove", onMove);
         window.addEventListener("mouseup", onUp);
         return () => {
             window.removeEventListener("mousemove", onMove);
             window.removeEventListener("mouseup", onUp);
         };
-    }, []);
+    }, [minSize.width, minSize.height]);
 
     if (!config && !titleProp) return null;
     const resolvedTitle = titleProp || config?.title || appId;
     const resolvedIcon = config?.icon || "🗂️";
 
-    const isActive = isActiveProp !== undefined ? isActiveProp : activeWindow === appId;
     const { isDarkMode } = useOSStore();
 
     const winBg = isDarkMode
@@ -215,6 +253,27 @@ export function OSWindow({ appId, zIndex, children, onClose: onCloseProp, onFocu
 
                     {/* Content */}
                     <div className="flex-1 overflow-auto">{children}</div>
+
+                    {/* Resize handles (only when not fullscreen) */}
+                    {!isFullscreen && (
+                        <>
+                            {/* Bottom-right corner */}
+                            <div
+                                className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize z-10"
+                                onMouseDown={onResizeStart}
+                            />
+                            {/* Right edge */}
+                            <div
+                                className="absolute top-11 right-0 w-1.5 bottom-0 cursor-ew-resize z-10 hover:bg-blue-400/10"
+                                onMouseDown={onResizeStart}
+                            />
+                            {/* Bottom edge */}
+                            <div
+                                className="absolute bottom-0 left-0 h-1.5 right-0 cursor-ns-resize z-10 hover:bg-blue-400/10"
+                                onMouseDown={onResizeStart}
+                            />
+                        </>
+                    )}
                 </motion.div>
             )}
         </AnimatePresence>

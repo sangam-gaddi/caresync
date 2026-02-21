@@ -135,14 +135,13 @@ async def entrypoint(ctx: agents.JobContext):
         model="llama3.1-8b"
     )
     
-    # Create agent session with full voice pipeline
-    logger.info("📦 Creating Dr. ARIA session with Cartesia TTS...")
+    # Create agent session with Deepgram for BOTH STT and TTS (reliable, single provider)
+    logger.info("📦 Creating Dr. ARIA session with Deepgram STT + TTS...")
     session = AgentSession(
         stt=deepgram.STT(model="nova-2", language="en"),
         llm=llm_instance,
-        tts=cartesia.TTS(
-            model="sonic-2",
-            voice="f786b574-daa5-4673-aa0c-cbe3e8534c02",  # Professional female voice
+        tts=deepgram.TTS(
+            model="aura-asteria-en",  # Professional female English voice
         ),
         vad=silero.VAD.load(),
     )
@@ -159,15 +158,18 @@ async def entrypoint(ctx: agents.JobContext):
     
     logger.info("🎤 Dr. ARIA is live!")
     
-    # Generate a warm, specialist-aware greeting
-    greeting = f"""Give a warm greeting WITHOUT using the patient's name. Say something like:
-    "Hello there! Welcome to your HealthOS consultation. I'm Dr. ARIA, your AI {specialist_type}.
-    I've reviewed your health profile and I'm ready to help. What would you like to discuss today?
-    Whether it's symptoms, health questions, or just a wellness check — I'm here for you."""
+    # Short greeting — keep it brief so TTS responds quickly
+    greeting = (
+        f"Greet the patient warmly in 1-2 sentences. "
+        f"You are Dr. ARIA, an AI {specialist_type}. "
+        f"Do NOT use the patient's name. Ask what they'd like to discuss."
+    )
     
-    await session.generate_reply(instructions=greeting)
-    
-    logger.info("✅ Dr. ARIA greeted the patient!")
+    try:
+        await session.generate_reply(instructions=greeting)
+        logger.info("✅ Dr. ARIA greeted the patient!")
+    except Exception as e:
+        logger.error(f"Greeting failed: {e}")
     
     # Keep agent running until disconnected
     await asyncio.Future()

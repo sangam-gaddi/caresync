@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { useOSStore } from "@/lib/store";
 import type { TriageResult } from "@/lib/triage-engine";
+import gsap from "gsap";
 
 // ─────────────────────────────────────────────────────────────────
 // VOICE WAVEFORM (ported from BEC BillDesk)
@@ -108,20 +109,79 @@ function TriageScreen({ onSelectMode, triage, loading }: {
     triage: TriageResult | null;
     loading: boolean;
 }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+    const bgRef = useRef<HTMLImageElement>(null);
+    const overlayRef = useRef<HTMLDivElement>(null);
+    const badgeRef = useRef<HTMLDivElement>(null);
+    const titleRef = useRef<HTMLDivElement>(null);
+    const greetingRef = useRef<HTMLDivElement>(null);
+    const buttonsRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (loading || !triage || !containerRef.current) return;
+
+        const ctx = gsap.context(() => {
+            const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
+            // Background cinematic zoom-in
+            if (bgRef.current) {
+                gsap.set(bgRef.current, { scale: 1.3, opacity: 0 });
+                tl.to(bgRef.current, { scale: 1.05, opacity: 1, duration: 1.8, ease: "power2.out" });
+            }
+
+            // Overlay fade
+            if (overlayRef.current) {
+                gsap.set(overlayRef.current, { opacity: 0 });
+                tl.to(overlayRef.current, { opacity: 1, duration: 0.8 }, 0);
+            }
+
+            // Badge pop-in
+            if (badgeRef.current) {
+                gsap.set(badgeRef.current, { scale: 0, opacity: 0, y: 30 });
+                tl.to(badgeRef.current, { scale: 1, opacity: 1, y: 0, duration: 0.7, ease: "back.out(1.7)" }, 0.5);
+            }
+
+            // Title slide up
+            if (titleRef.current) {
+                gsap.set(titleRef.current, { y: 40, opacity: 0 });
+                tl.to(titleRef.current, { y: 0, opacity: 1, duration: 0.6 }, 0.7);
+            }
+
+            // Greeting fade in
+            if (greetingRef.current) {
+                gsap.set(greetingRef.current, { y: 20, opacity: 0 });
+                tl.to(greetingRef.current, { y: 0, opacity: 1, duration: 0.6 }, 0.9);
+            }
+
+            // Buttons stagger entrance
+            if (buttonsRef.current) {
+                const btns = buttonsRef.current.children;
+                gsap.set(btns, { y: 50, opacity: 0, scale: 0.85 });
+                tl.to(btns, { y: 0, opacity: 1, scale: 1, duration: 0.6, stagger: 0.15, ease: "back.out(1.2)" }, 1.0);
+            }
+        }, containerRef);
+
+        return () => ctx.revert();
+    }, [loading, triage]);
+
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center h-full gap-4">
-                <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center animate-pulse">
-                    <Stethoscope className="w-8 h-8 text-white" />
-                </div>
-                <div className="text-center">
-                    <p className="text-sm text-white font-semibold">Analyzing your health data...</p>
-                    <p className="text-[11px] text-white/40 mt-1">Running AI triage to assign your specialist</p>
-                </div>
-                <div className="flex gap-1 mt-2">
-                    {[0, 1, 2].map(i => (
-                        <div key={i} className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
-                    ))}
+            <div className="relative flex flex-col items-center justify-center h-full gap-4 overflow-hidden">
+                <img src="/home/hero.png" alt="" className="absolute inset-0 w-full h-full object-cover opacity-20 blur-sm scale-110" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-[#080c14]" />
+                <div className="relative z-10 flex flex-col items-center gap-4">
+                    <div className="w-16 h-16 rounded-3xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center animate-pulse shadow-[0_0_40px_rgba(168,85,247,0.3)]">
+                        <Stethoscope className="w-8 h-8 text-white" />
+                    </div>
+                    <div className="text-center">
+                        <p className="text-sm text-white font-semibold">Analyzing your health data...</p>
+                        <p className="text-[11px] text-white/40 mt-1">Running AI triage to assign your specialist</p>
+                    </div>
+                    <div className="flex gap-1.5 mt-1">
+                        {[0, 1, 2].map(i => (
+                            <div key={i} className="w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: `${i * 0.15}s` }} />
+                        ))}
+                    </div>
                 </div>
             </div>
         );
@@ -130,66 +190,90 @@ function TriageScreen({ onSelectMode, triage, loading }: {
     if (!triage) return null;
 
     return (
-        <div className="flex flex-col items-center justify-center h-full p-6 gap-5">
-            {/* Specialist Badge */}
-            <motion.div
-                initial={{ scale: 0, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.1 }}
-                className="text-center"
-            >
-                <div className={`mx-auto w-20 h-20 rounded-3xl bg-gradient-to-br ${triage.specialistColor} flex items-center justify-center text-4xl shadow-lg mb-3`}>
-                    {triage.specialistIcon}
+        <div ref={containerRef} className="relative flex flex-col items-center justify-center h-full overflow-hidden">
+            {/* Hero Background with GSAP cinematic zoom */}
+            <img
+                ref={bgRef}
+                src="/home/hero.png"
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ opacity: 0 }}
+            />
+            <div
+                ref={overlayRef}
+                className="absolute inset-0 bg-gradient-to-b from-black/60 via-[#080c14]/70 to-[#080c14]"
+                style={{ opacity: 0 }}
+            />
+
+            {/* Floating particles */}
+            <div className="absolute inset-0 z-[1] overflow-hidden pointer-events-none">
+                {[...Array(6)].map((_, i) => (
+                    <div
+                        key={i}
+                        className="absolute w-1 h-1 rounded-full bg-cyan-400/20 animate-pulse"
+                        style={{
+                            left: `${15 + i * 14}%`,
+                            top: `${20 + (i % 3) * 25}%`,
+                            animationDelay: `${i * 0.5}s`,
+                            animationDuration: `${2 + i * 0.3}s`,
+                        }}
+                    />
+                ))}
+            </div>
+
+            {/* Content */}
+            <div className="relative z-10 flex flex-col items-center p-6 gap-5">
+                {/* Specialist Badge */}
+                <div ref={badgeRef} className="text-center" style={{ opacity: 0 }}>
+                    <div className={`mx-auto w-20 h-20 rounded-3xl bg-gradient-to-br ${triage.specialistColor} flex items-center justify-center text-4xl shadow-[0_0_50px_rgba(168,85,247,0.25)] mb-3`}>
+                        {triage.specialistIcon}
+                    </div>
                 </div>
-                <h2 className="text-lg font-bold text-white">{triage.specialistType}</h2>
-                <p className="text-[11px] text-white/40 mt-1">
-                    Confidence: {triage.confidence}% match based on your health profile
-                </p>
-            </motion.div>
 
-            {/* Greeting */}
-            <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="max-w-sm text-center"
-            >
-                <p className="text-sm text-white/70 leading-relaxed italic">&ldquo;{triage.greeting}&rdquo;</p>
-            </motion.div>
+                {/* Title */}
+                <div ref={titleRef} className="text-center" style={{ opacity: 0 }}>
+                    <h2 className="text-lg font-bold text-white tracking-wide">{triage.specialistType}</h2>
+                    <p className="text-[11px] text-white/40 mt-1">
+                        Confidence: {triage.confidence}% match based on your health profile
+                    </p>
+                </div>
 
-            {/* Mode Selection */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="flex gap-3 w-full max-w-xs"
-            >
-                <button
-                    onClick={() => onSelectMode("chat")}
-                    className="flex-1 flex flex-col items-center gap-2 p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all group"
-                >
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <MessageSquare className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-semibold text-white">Chat</p>
-                        <p className="text-[10px] text-white/40">Text consultation</p>
-                    </div>
-                </button>
+                {/* Greeting */}
+                <div ref={greetingRef} className="max-w-sm text-center" style={{ opacity: 0 }}>
+                    <p className="text-sm text-white/70 leading-relaxed italic">&ldquo;{triage.greeting}&rdquo;</p>
+                </div>
 
-                <button
-                    onClick={() => onSelectMode("voice")}
-                    className="flex-1 flex flex-col items-center gap-2 p-4 rounded-2xl bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-500/50 transition-all group"
-                >
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                        <Phone className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                        <p className="text-sm font-semibold text-white">Voice</p>
-                        <p className="text-[10px] text-white/40">Speak with ARIA</p>
-                    </div>
-                </button>
-            </motion.div>
+                {/* Mode Selection */}
+                <div ref={buttonsRef} className="flex gap-3 w-full max-w-xs">
+                    <button
+                        onClick={() => onSelectMode("chat")}
+                        className="flex-1 flex flex-col items-center gap-2 p-4 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 hover:bg-cyan-500/20 hover:border-cyan-500/50 transition-all duration-300 group backdrop-blur-sm"
+                        style={{ opacity: 0 }}
+                    >
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-[0_0_20px_rgba(6,182,212,0.2)]">
+                            <MessageSquare className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-semibold text-white">Chat</p>
+                            <p className="text-[10px] text-white/40">Text consultation</p>
+                        </div>
+                    </button>
+
+                    <button
+                        onClick={() => onSelectMode("voice")}
+                        className="flex-1 flex flex-col items-center gap-2 p-4 rounded-2xl bg-purple-500/10 border border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-500/50 transition-all duration-300 group backdrop-blur-sm"
+                        style={{ opacity: 0 }}
+                    >
+                        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
+                            <Phone className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-semibold text-white">Voice</p>
+                            <p className="text-[10px] text-white/40">Speak with ARIA</p>
+                        </div>
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
@@ -214,7 +298,7 @@ function ChatInterface({ triage, onBack }: {
     const [typing, setTyping] = useState(false);
     const [listening, setListening] = useState(false);
     const [ttsEnabled, setTtsEnabled] = useState(true);
-    const [selectedModel, setSelectedModel] = useState("auto");
+    const [selectedModel, setSelectedModel] = useState("nvidia/nemotron-nano-9b-v2:free");
     const messagesEndRef = useRef<HTMLDivElement>(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognitionRef = useRef<any>(null);
@@ -319,7 +403,7 @@ function ChatInterface({ triage, onBack }: {
     return (
         <div className="flex flex-col h-full bg-[#080c14]">
             {/* Header */}
-            <div className="flex items-center gap-2 p-3 border-b border-[#1e2a3a]">
+            <div className="flex items-center gap-2 p-3 border-b border-[#1e2a3a] bg-[#080c14]/80 backdrop-blur-xl">
                 <button onClick={onBack} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/5 transition-colors">
                     <ArrowLeft className="w-4 h-4 text-white/50" />
                 </button>
@@ -333,7 +417,7 @@ function ChatInterface({ triage, onBack }: {
                         <span className="text-[9px] text-white/40">Dr. ARIA · Online</span>
                     </div>
                 </div>
-                <button onClick={() => setTtsEnabled(!ttsEnabled)} className="mr-1 text-white/30 hover:text-white/60 transition-colors" title={ttsEnabled ? "Mute TTS" : "Enable TTS"}>
+                <button onClick={() => { const next = !ttsEnabled; setTtsEnabled(next); if (!next && typeof window !== "undefined") window.speechSynthesis.cancel(); }} className="mr-1 text-white/30 hover:text-white/60 transition-colors" title={ttsEnabled ? "Mute TTS" : "Enable TTS"}>
                     {ttsEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5" />}
                 </button>
                 <ModelSelector selected={selectedModel} onSelect={setSelectedModel} />
@@ -345,9 +429,9 @@ function ChatInterface({ triage, onBack }: {
                     {messages.map((msg, index) => (
                         <motion.div
                             key={index}
-                            initial={{ opacity: 0, y: 8 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.2 }}
+                            initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
                             className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                         >
                             {msg.role === "doctor" && (
@@ -447,6 +531,11 @@ function VoiceInterface({ triage, onBack }: {
     const [voiceConfigured, setVoiceConfigured] = useState<boolean | null>(null);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const roomRef = useRef<any>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const browserRecRef = useRef<any>(null);
+    const [browserVoiceActive, setBrowserVoiceActive] = useState(false);
+    const [browserStatus, setBrowserStatus] = useState<"idle" | "listening" | "thinking" | "speaking">("idle");
+    const conversationRef = useRef<{ role: string; text: string }[]>([]);
 
     const { patientId, patientName } = useOSStore();
 
@@ -538,18 +627,159 @@ function VoiceInterface({ triage, onBack }: {
         setIsMuted(enabled);
     }, []);
 
+    // ── Browser-based voice (fallback when LiveKit not configured) ──
+    const startBrowserVoice = useCallback(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const w = window as any;
+        const SpeechRecognitionAPI = w.webkitSpeechRecognition || w.SpeechRecognition;
+        if (!SpeechRecognitionAPI) {
+            setErrorMsg("Voice input not supported. Please use Chrome.");
+            return;
+        }
+
+        const recognition = new SpeechRecognitionAPI();
+        recognition.lang = "en-US";
+        recognition.continuous = true;
+        recognition.interimResults = false;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        recognition.onresult = async (event: any) => {
+            const lastIdx = event.results.length - 1;
+            const text = event.results[lastIdx][0].transcript;
+            if (!text.trim()) return;
+
+            setTranscript(prev => [...prev, `You: ${text}`]);
+            setUserSpeaking(false);
+            setBrowserStatus("thinking");
+            setAgentSpeaking(false);
+
+            conversationRef.current.push({ role: "user", text });
+
+            try {
+                const res = await fetch("/api/ai-doctor/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        messages: conversationRef.current,
+                        systemPrompt: triage.systemPrompt,
+                        specialistType: triage.specialistType,
+                    }),
+                });
+                const data = await res.json();
+                const response = data.response || "I couldn't process that. Could you repeat?";
+
+                conversationRef.current.push({ role: "doctor", text: response });
+                setTranscript(prev => [...prev, `Dr. ARIA: ${response}`]);
+                setBrowserStatus("speaking");
+                setAgentSpeaking(true);
+
+                // Speak through browser TTS
+                if (typeof window !== "undefined" && window.speechSynthesis) {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(response);
+                    utterance.rate = 0.95;
+                    utterance.pitch = 1.0;
+                    utterance.volume = 0.8;
+                    const voices = speechSynthesis.getVoices();
+                    const preferred = voices.find(v => v.name.includes("Google") || v.name.includes("Female") || v.lang === "en-US");
+                    if (preferred) utterance.voice = preferred;
+                    utterance.onend = () => {
+                        setAgentSpeaking(false);
+                        setBrowserStatus("listening");
+                    };
+                    window.speechSynthesis.speak(utterance);
+                } else {
+                    setAgentSpeaking(false);
+                    setBrowserStatus("listening");
+                }
+            } catch {
+                setAgentSpeaking(false);
+                setBrowserStatus("listening");
+                setTranscript(prev => [...prev, "Dr. ARIA: I'm having trouble connecting. Please try again."]);
+            }
+        };
+
+        recognition.onspeechstart = () => setUserSpeaking(true);
+        recognition.onspeechend = () => setUserSpeaking(false);
+        recognition.onerror = (e: { error: string }) => {
+            if (e.error !== "no-speech" && e.error !== "aborted") {
+                console.warn("Speech recognition error:", e.error);
+            }
+        };
+        recognition.onend = () => {
+            // Auto-restart if still active
+            if (browserRecRef.current && browserVoiceActive) {
+                try { recognition.start(); } catch { /* ignore */ }
+            }
+        };
+
+        browserRecRef.current = recognition;
+        recognition.start();
+        setBrowserVoiceActive(true);
+        setBrowserStatus("listening");
+        setStatus("connected");
+
+        // Speak initial greeting
+        if (typeof window !== "undefined" && window.speechSynthesis) {
+            const greeting = triage.greeting;
+            setTranscript([`Dr. ARIA: ${greeting}`]);
+            conversationRef.current = [{ role: "doctor", text: greeting }];
+            setAgentSpeaking(true);
+            setBrowserStatus("speaking");
+            const utterance = new SpeechSynthesisUtterance(greeting);
+            utterance.rate = 0.95;
+            utterance.pitch = 1.0;
+            utterance.volume = 0.8;
+            utterance.onend = () => {
+                setAgentSpeaking(false);
+                setBrowserStatus("listening");
+            };
+            window.speechSynthesis.speak(utterance);
+        }
+    }, [triage, browserVoiceActive]);
+
+    const stopBrowserVoice = useCallback(() => {
+        if (browserRecRef.current) {
+            browserRecRef.current.stop();
+            browserRecRef.current = null;
+        }
+        if (typeof window !== "undefined") window.speechSynthesis.cancel();
+        setBrowserVoiceActive(false);
+        setBrowserStatus("idle");
+        setStatus("idle");
+        setAgentSpeaking(false);
+        setUserSpeaking(false);
+    }, []);
+
+    const toggleBrowserMute = useCallback(() => {
+        if (isMuted) {
+            // Unmute — restart recognition
+            if (browserRecRef.current) {
+                try { browserRecRef.current.start(); } catch { /* might already be running */ }
+            }
+        } else {
+            // Mute — stop recognition
+            if (browserRecRef.current) {
+                try { browserRecRef.current.stop(); } catch { /* ignore */ }
+            }
+        }
+        setIsMuted(!isMuted);
+    }, [isMuted]);
+
     // Cleanup on unmount
     useEffect(() => {
         return () => {
             roomRef.current?.disconnect();
+            if (browserRecRef.current) { browserRecRef.current.stop(); browserRecRef.current = null; }
+            if (typeof window !== "undefined") window.speechSynthesis.cancel();
         };
     }, []);
 
     return (
         <div className="flex flex-col h-full bg-[#080c14]">
             {/* Header */}
-            <div className="flex items-center gap-2 p-3 border-b border-[#1e2a3a]">
-                <button onClick={() => { disconnect(); onBack(); }} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/5 transition-colors">
+            <div className="flex items-center gap-2 p-3 border-b border-[#1e2a3a] bg-[#080c14]/80 backdrop-blur-xl">
+                <button onClick={() => { disconnect(); stopBrowserVoice(); onBack(); }} className="w-7 h-7 rounded-lg flex items-center justify-center hover:bg-white/5 transition-colors">
                     <ArrowLeft className="w-4 h-4 text-white/50" />
                 </button>
                 <div className={`w-8 h-8 rounded-xl bg-gradient-to-br ${triage.specialistColor} flex items-center justify-center text-lg`}>
@@ -568,18 +798,79 @@ function VoiceInterface({ triage, onBack }: {
 
             {/* Main content */}
             <div className="flex-1 flex flex-col items-center justify-center p-6 gap-4">
-                {/* Not configured state */}
+                {/* Not configured — use Browser Voice mode */}
                 {voiceConfigured === false && (
-                    <div className="text-center max-w-xs">
-                        <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto mb-3">
-                            <Phone className="w-8 h-8 text-amber-400" />
+                    <>
+                        {/* Avatar */}
+                        <motion.div
+                            animate={browserVoiceActive ? (agentSpeaking ? { scale: [1, 1.08, 1], boxShadow: ["0 0 0 0 rgba(34,197,94,0.2)", "0 0 40px 10px rgba(34,197,94,0.3)", "0 0 0 0 rgba(34,197,94,0.2)"] } : {}) : {}}
+                            transition={agentSpeaking ? { duration: 1.5, repeat: Infinity } : {}}
+                            className={`w-24 h-24 rounded-full bg-gradient-to-br ${triage.specialistColor} flex items-center justify-center text-5xl shadow-2xl`}
+                        >
+                            {triage.specialistIcon}
+                        </motion.div>
+
+                        <div className="text-center">
+                            <p className="text-sm font-semibold text-white">{triage.specialistType}</p>
+                            <p className="text-[10px] text-cyan-400/60 mb-1">Browser Voice Mode</p>
+                            <p className="text-[11px] text-white/40 mt-0.5">
+                                {!browserVoiceActive ? "Tap to start voice consultation" :
+                                    browserStatus === "listening" ? "Listening — speak when ready..." :
+                                        browserStatus === "thinking" ? "Dr. ARIA is thinking..." :
+                                            browserStatus === "speaking" ? "Dr. ARIA is speaking..." : "Ready"}
+                            </p>
                         </div>
-                        <h3 className="text-sm font-bold text-white mb-1">Voice Not Configured</h3>
-                        <p className="text-[11px] text-white/40 mb-3 leading-relaxed">
-                            Add LiveKit, Deepgram, Cerebras, and Cartesia API keys to your .env.local to enable voice consultations.
-                        </p>
-                        <button onClick={onBack} className="mt-3 text-[11px] text-cyan-400 hover:text-cyan-300">Use Chat instead →</button>
-                    </div>
+
+                        {/* Waveforms */}
+                        {browserVoiceActive && (
+                            <div className="flex items-center gap-6">
+                                <div className="text-center">
+                                    <VoiceWaveform isActive={userSpeaking} isSpeaking={false} size="lg" />
+                                    <p className="text-[9px] text-white/30 mt-1">You</p>
+                                </div>
+                                <div className="text-center">
+                                    <VoiceWaveform isActive={agentSpeaking} isSpeaking={true} size="lg" />
+                                    <p className="text-[9px] text-white/30 mt-1">Dr. ARIA</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Controls */}
+                        <div className="flex items-center gap-3 mt-2">
+                            {!browserVoiceActive ? (
+                                <button
+                                    onClick={startBrowserVoice}
+                                    className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold text-sm hover:from-green-400 hover:to-emerald-500 transition-all shadow-[0_0_30px_rgba(34,197,94,0.2)]"
+                                >
+                                    <Phone className="w-4 h-4" /> Start Voice Call
+                                </button>
+                            ) : (
+                                <>
+                                    <button
+                                        onClick={toggleBrowserMute}
+                                        className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${isMuted ? "bg-red-500/20 border border-red-500/40 text-red-400" : "bg-purple-500/20 border border-purple-500/40 text-purple-400"}`}
+                                    >
+                                        {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                                    </button>
+                                    <button
+                                        onClick={stopBrowserVoice}
+                                        className="w-12 h-12 rounded-full bg-red-500/20 border border-red-500/40 flex items-center justify-center text-red-400 hover:bg-red-500/30 transition-all"
+                                    >
+                                        <Phone className="w-5 h-5 rotate-[135deg]" />
+                                    </button>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Transcript */}
+                        {transcript.length > 0 && (
+                            <div className="w-full max-w-xs max-h-32 overflow-y-auto mt-2 space-y-1 scrollbar-hide">
+                                {transcript.slice(-6).map((t, i) => (
+                                    <p key={i} className={`text-[10px] rounded px-2 py-1 ${t.startsWith("You:") ? "text-cyan-300/60 bg-cyan-500/5" : "text-white/40 bg-white/5"}`}>{t}</p>
+                                ))}
+                            </div>
+                        )}
+                    </>
                 )}
 
                 {/* Ready / Connected state */}
@@ -738,20 +1029,20 @@ export default function AIDoctorWindow() {
     const handleBack = () => setMode("triage");
 
     return (
-        <div className="h-full w-full">
+        <div className="h-full w-full overflow-hidden">
             <AnimatePresence mode="wait">
                 {mode === "triage" && (
-                    <motion.div key="triage" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="h-full">
+                    <motion.div key="triage" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.4, ease: "easeInOut" }} className="h-full">
                         <TriageScreen onSelectMode={handleSelectMode} triage={triage} loading={triageLoading} />
                     </motion.div>
                 )}
                 {mode === "chat" && triage && (
-                    <motion.div key="chat" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="h-full">
+                    <motion.div key="chat" initial={{ opacity: 0, x: 30, scale: 0.98 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -30, scale: 0.98 }} transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }} className="h-full">
                         <ChatInterface triage={triage} onBack={handleBack} />
                     </motion.div>
                 )}
                 {mode === "voice" && triage && (
-                    <motion.div key="voice" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="h-full">
+                    <motion.div key="voice" initial={{ opacity: 0, x: 30, scale: 0.98 }} animate={{ opacity: 1, x: 0, scale: 1 }} exit={{ opacity: 0, x: -30, scale: 0.98 }} transition={{ duration: 0.35, ease: [0.25, 0.46, 0.45, 0.94] }} className="h-full">
                         <VoiceInterface triage={triage} onBack={handleBack} />
                     </motion.div>
                 )}

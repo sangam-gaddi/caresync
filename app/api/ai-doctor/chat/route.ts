@@ -27,12 +27,16 @@ interface ChatMessage {
     content: string;
 }
 
-async function callOpenRouterWithFallback(messages: ChatMessage[]): Promise<string> {
+async function callOpenRouterWithFallback(messages: ChatMessage[], preferredModel?: string): Promise<string> {
     if (!OPENROUTER_API_KEY) {
         throw new Error("OPENROUTER_API_KEY is not set");
     }
 
-    for (const model of OPENROUTER_MODELS) {
+    const models = preferredModel
+        ? [preferredModel, ...OPENROUTER_MODELS.filter(m => m !== preferredModel)]
+        : OPENROUTER_MODELS;
+
+    for (const model of models) {
         try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 15000); // 15s timeout per model
@@ -84,7 +88,7 @@ async function callOpenRouterWithFallback(messages: ChatMessage[]): Promise<stri
 
 export async function POST(req: NextRequest) {
     try {
-        const { messages, systemPrompt, specialistType } = await req.json();
+        const { messages, systemPrompt, specialistType, selectedModel } = await req.json();
 
         if (!messages || !Array.isArray(messages)) {
             return NextResponse.json({ error: "Messages array required" }, { status: 400 });
@@ -114,7 +118,7 @@ export async function POST(req: NextRequest) {
             fullMessages.unshift({ role: "user", content: `[INSTRUCTIONS: ${systemPrompt}]` });
         }
 
-        const rawText = await callOpenRouterWithFallback(fullMessages);
+        const rawText = await callOpenRouterWithFallback(fullMessages, selectedModel);
 
         // Try to parse as JSON only if it looks like a structured response with a "response" field
         let responseText = rawText;
